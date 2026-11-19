@@ -120,14 +120,23 @@ fn walk(node: &gltf::Node, parent: Mat4, owner: Option<(Anim, Vec3)>, buffers: &
             let Some(pos) = reader.read_positions() else { continue };
             let pos: Vec<[f32; 3]> = pos.collect();
             let normals: Vec<[f32; 3]> = reader.read_normals().map(|n| n.collect()).unwrap_or_else(|| vec![[0.0, 1.0, 0.0]; pos.len()]);
-            let uvs: Vec<[f32; 2]> = reader.read_tex_coords(0).map(|t| t.into_f32().collect()).unwrap_or_else(|| vec![[0.0, 0.0]; pos.len()]);
+            let uvs: Vec<[f32; 2]> =
+                reader.read_tex_coords(0).map(|t| t.into_f32().collect()).unwrap_or_else(|| vec![[0.0, 0.0]; pos.len()]);
             let idx: Vec<u32> = match reader.read_indices() {
                 Some(i) => i.into_u32().collect(),
                 None => (0..pos.len() as u32).collect(),
             };
-            let verts = pos.iter().zip(normals.iter()).zip(uvs.iter()).map(|((p, n), uv)| Vertex { pos: *p, normal: *n, uv: *uv }).collect();
+            let verts =
+                pos.iter().zip(normals.iter()).zip(uvs.iter()).map(|((p, n), uv)| Vertex { pos: *p, normal: *n, uv: *uv }).collect();
             let (anim, pivot) = owner.clone().unwrap_or((Anim::None, world.transform_point3(Vec3::ZERO)));
-            out.push(Part { name: name.clone(), mesh: Mesh { verts, idx }, transform: world, pivot, material: material_of(&prim.material()), anim });
+            out.push(Part {
+                name: name.clone(),
+                mesh: Mesh { verts, idx },
+                transform: world,
+                pivot,
+                material: material_of(&prim.material()),
+                anim,
+            });
         }
     }
     for c in node.children() {

@@ -50,7 +50,9 @@ fn main() {
     if let Some(s) = get("--press") {
         pose.pressed = s.split(',').map(String::from).collect();
     }
-    let size = get("--size").and_then(|s| s.split_once('x').map(|(w, h)| (w.parse().unwrap_or(1100), h.parse().unwrap_or(760)))).unwrap_or((1100, 760));
+    let size = get("--size")
+        .and_then(|s| s.split_once('x').map(|(w, h)| (w.parse().unwrap_or(1100), h.parse().unwrap_or(760))))
+        .unwrap_or((1100, 760));
     r.render(kind, &pose, size);
     let (w, h, rgba) = r.read_rgba().expect("readback");
     // Composite over a mid-grey studio backdrop so transparency is visible.

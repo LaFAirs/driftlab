@@ -97,7 +97,16 @@ fn gamma_to_linear(c: [f32; 3]) -> [f32; 3] {
 }
 
 fn paint_material(p: Paint) -> Material {
-    let m = |c: [f32; 3], metallic, rough, emissive, kind| Material { base: gamma_to_linear(c), metallic, rough, emissive, emissive_factor: [0.0; 3], normal_scale: 1.0, kind, tex: TexRefs::default() };
+    let m = |c: [f32; 3], metallic, rough, emissive, kind| Material {
+        base: gamma_to_linear(c),
+        metallic,
+        rough,
+        emissive,
+        emissive_factor: [0.0; 3],
+        normal_scale: 1.0,
+        kind,
+        tex: TexRefs::default(),
+    };
     match p {
         Paint::Body => m([0.92, 0.93, 0.95], 0.0, 0.6, 0.0, MatKind::Normal),
         Paint::Dark => m([0.1, 0.11, 0.13], 0.0, 0.45, 0.0, MatKind::Normal),

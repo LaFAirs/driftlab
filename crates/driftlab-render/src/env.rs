@@ -114,7 +114,10 @@ fn f16_bytes(out: &mut Vec<u8>, c: [f32; 3]) {
 }
 
 pub fn build(hdr_bytes: &[u8]) -> Result<Env, String> {
-    let img = image::ImageReader::with_format(std::io::Cursor::new(hdr_bytes), image::ImageFormat::Hdr).decode().map_err(|e| e.to_string())?.to_rgb32f();
+    let img = image::ImageReader::with_format(std::io::Cursor::new(hdr_bytes), image::ImageFormat::Hdr)
+        .decode()
+        .map_err(|e| e.to_string())?
+        .to_rgb32f();
     let full = Equirect { w: img.width() as usize, h: img.height() as usize, px: img.pixels().map(|p| p.0).collect() };
     let src = full.downsample(SPEC_W as usize, SPEC_H as usize);
 
@@ -142,7 +145,17 @@ pub fn build(hdr_bytes: &[u8]) -> Result<Env, String> {
         for x in 0..src.w {
             let d = src.dir(x, y);
             let c = Vec3::from(src.px[y * src.w + x]) * dw;
-            let b = [0.282095, 0.488603 * d.y, 0.488603 * d.z, 0.488603 * d.x, 1.092548 * d.x * d.y, 1.092548 * d.y * d.z, 0.315392 * (3.0 * d.z * d.z - 1.0), 1.092548 * d.x * d.z, 0.546274 * (d.x * d.x - d.y * d.y)];
+            let b = [
+                0.282095,
+                0.488603 * d.y,
+                0.488603 * d.z,
+                0.488603 * d.x,
+                1.092548 * d.x * d.y,
+                1.092548 * d.y * d.z,
+                0.315392 * (3.0 * d.z * d.z - 1.0),
+                1.092548 * d.x * d.z,
+                0.546274 * (d.x * d.x - d.y * d.y),
+            ];
             for k in 0..9 {
                 sh[k] += c * b[k];
             }
@@ -208,7 +221,12 @@ pub fn build(hdr_bytes: &[u8]) -> Result<Env, String> {
                     b += fc * g_vis;
                 }
             }
-            lut.extend_from_slice(&[(a / ns as f32 * 255.0).clamp(0.0, 255.0) as u8, (b / ns as f32 * 255.0).clamp(0.0, 255.0) as u8, 0, 255]);
+            lut.extend_from_slice(&[
+                (a / ns as f32 * 255.0).clamp(0.0, 255.0) as u8,
+                (b / ns as f32 * 255.0).clamp(0.0, 255.0) as u8,
+                0,
+                255,
+            ]);
         }
     }
     Ok(Env { sh: sh_out, key_dir, spec, lut })

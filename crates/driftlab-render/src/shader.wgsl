@@ -174,7 +174,7 @@ fn shade(wpos: vec3<f32>, n_geo: vec3<f32>, uv: vec2<f32>, with_shadow: bool) ->
     if (with_shadow) { sh = mix(1.0, shadow_factor(wpos, n_geo), g.misc.z); }
     let fres = f0 + (vec3<f32>(1.0) - f0) * pow(1.0 - max(dot(h, v), 0.0), 5.0);
     let spec_dir = ggx(max(dot(n, h), 0.0), rough) * smith_vis(nl, nv, rough) * fres;
-    col = col + (kd / PI + spec_dir) * nl * 2.2 * sh;
+    col = col + (kd / PI + spec_dir) * nl * 1.1 * sh;
 
     // --- emission (glTF emissive, lightbar / guide in the theme accent, pressed buttons)
     var emis = o.emissive.rgb * emis_t;
