@@ -7,6 +7,7 @@ use bytemuck::{Pod, Zeroable};
 pub struct Vertex {
     pub pos: [f32; 3],
     pub normal: [f32; 3],
+    pub uv: [f32; 2],
 }
 
 #[derive(Default, Clone)]
@@ -33,7 +34,7 @@ impl Mesh {
                     sgnpow(cv, 2.0 - e_ns) * sgnpow(su, 2.0 - e_ew) / r[2],
                 ];
                 let l = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt().max(1e-6);
-                m.verts.push(Vertex { pos: p, normal: [n[0] / l, n[1] / l, n[2] / l] });
+                m.verts.push(Vertex { pos: p, normal: [n[0] / l, n[1] / l, n[2] / l], uv: [0.0, 0.0] });
             }
         }
         for i in 0..rings {
@@ -62,8 +63,8 @@ impl Mesh {
         for j in 0..=segs {
             let a = std::f32::consts::TAU * j as f32 / segs as f32;
             let (c, s) = (a.cos(), a.sin());
-            m.verts.push(Vertex { pos: [radius * c, -h, radius * s], normal: [c, 0.0, s] });
-            m.verts.push(Vertex { pos: [radius * c, h, radius * s], normal: [c, 0.0, s] });
+            m.verts.push(Vertex { pos: [radius * c, -h, radius * s], normal: [c, 0.0, s], uv: [0.0, 0.0] });
+            m.verts.push(Vertex { pos: [radius * c, h, radius * s], normal: [c, 0.0, s], uv: [0.0, 0.0] });
         }
         for j in 0..segs {
             let a = j * 2;
@@ -71,10 +72,10 @@ impl Mesh {
         }
         for (y, ny) in [(h, 1.0f32), (-h, -1.0)] {
             let c = m.verts.len() as u32;
-            m.verts.push(Vertex { pos: [0.0, y, 0.0], normal: [0.0, ny, 0.0] });
+            m.verts.push(Vertex { pos: [0.0, y, 0.0], normal: [0.0, ny, 0.0], uv: [0.0, 0.0] });
             for j in 0..=segs {
                 let a = std::f32::consts::TAU * j as f32 / segs as f32;
-                m.verts.push(Vertex { pos: [radius * a.cos(), y, radius * a.sin()], normal: [0.0, ny, 0.0] });
+                m.verts.push(Vertex { pos: [radius * a.cos(), y, radius * a.sin()], normal: [0.0, ny, 0.0], uv: [0.0, 0.0] });
             }
             for j in 0..segs {
                 if ny > 0.0 {

@@ -98,6 +98,20 @@ pub fn delete_backup(path: &Path) -> Result<()> {
     Ok(std::fs::remove_file(path)?)
 }
 
+/// Write through a temporary file and rename, so a crash or full disk never leaves a half-written file behind.
+fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
+    let tmp = path.with_extension("tmp");
+    std::fs::write(&tmp, bytes)?;
+    std::fs::rename(&tmp, path)?;
+    Ok(())
+}
+
+/// Move an unreadable file aside (`<name>.corrupt`) so it is neither lost nor overwritten by the defaults.
+fn quarantine(path: &Path) {
+    let mut target = path.as_os_str().to_owned();
+    target.push(".corrupt");
+    let _ = std::fs::rename(path, std::path::PathBuf::from(target));
+}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Profile {
     pub name: String,
@@ -120,11 +134,18 @@ pub struct ProfileStore {
 
 impl ProfileStore {
     pub fn load(dir: &Path) -> Self {
-        std::fs::read(dir.join("profiles.json")).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
+        let path = dir.join("profiles.json");
+        match std::fs::read(&path) {
+            Ok(b) => serde_json::from_slice(&b).unwrap_or_else(|_| {
+                quarantine(&path);
+                Self::default()
+            }),
+            Err(_) => Self::default(),
+        }
     }
     pub fn save(&self, dir: &Path) -> Result<()> {
         std::fs::create_dir_all(dir)?;
-        std::fs::write(dir.join("profiles.json"), serde_json::to_vec_pretty(self)?)?;
+        atomic_write(&dir.join("profiles.json"), &serde_json::to_vec_pretty(self)?)?;
         Ok(())
     }
 }
@@ -177,12 +198,19 @@ impl Default for Settings {
 
 impl Settings {
     pub fn load(dir: &Path) -> Self {
-        std::fs::read_to_string(dir.join("settings.toml")).ok().and_then(|s| toml::from_str(&s).ok()).unwrap_or_default()
+        let path = dir.join("settings.toml");
+        match std::fs::read_to_string(&path) {
+            Ok(s) => toml::from_str(&s).unwrap_or_else(|_| {
+                quarantine(&path);
+                Self::default()
+            }),
+            Err(_) => Self::default(),
+        }
     }
     pub fn save(&self, dir: &Path) -> Result<()> {
         std::fs::create_dir_all(dir)?;
         let s = toml::to_string_pretty(self).map_err(|e| DriverError::Protocol(e.to_string()))?;
-        std::fs::write(dir.join("settings.toml"), s)?;
+        atomic_write(&dir.join("settings.toml"), s.as_bytes())?;
         Ok(())
     }
 }
@@ -257,5 +285,30 @@ mod tests {
         s.save(&d).unwrap();
         assert_eq!(Settings::load(&d), s);
         let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn corrupt_profiles_and_settings_are_quarantined_not_overwritten() {
+        let d = tmp("corrupt");
+        std::fs::create_dir_all(&d).unwrap();
+        std::fs::write(d.join("profiles.json"), b"{ not json").unwrap();
+        std::fs::write(d.join("settings.toml"), b"= = =").unwrap();
+        assert_eq!(ProfileStore::load(&d), ProfileStore::default());
+        assert_eq!(Settings::load(&d), Settings::default());
+        assert!(d.join("profiles.json.corrupt").exists());
+        assert!(d.join("settings.toml.corrupt").exists());
+        ProfileStore::default().save(&d).unwrap();
+        assert!(d.join("profiles.json.corrupt").exists(), "quarantined copy must survive the next save");
+    }
+
+    #[test]
+    fn save_into_unwritable_location_reports_error() {
+        let d = tmp("unwritable");
+        std::fs::create_dir_all(&d).unwrap();
+        let blocker = d.join("file");
+        std::fs::write(&blocker, b"x").unwrap();
+        // a *file* where the data directory should be: create_dir_all must fail, no panic
+        assert!(ProfileStore::default().save(&blocker).is_err());
+        assert!(Settings::default().save(&blocker).is_err());
     }
 }

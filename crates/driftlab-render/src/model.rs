@@ -42,20 +42,147 @@ pub enum Anim {
     Touchpad,
 }
 
+/// How the shader treats a material.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MatKind {
+    Normal,
+    /// Base colour follows the theme accent.
+    Accent,
+    /// Emissive in the theme accent (lightbar).
+    Glow,
+    /// Fine grip texture (procedural normal map).
+    Grip,
+    /// Smooth guide button glow (white tinted by the accent).
+    Guide,
+}
+
+/// Indices into the model's image list (None = factor only).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TexRefs {
+    pub base: Option<usize>,
+    pub metal_rough: Option<usize>,
+    pub normal: Option<usize>,
+    pub occlusion: Option<usize>,
+    pub emissive: Option<usize>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Material {
+    /// Linear RGB base colour factor.
+    pub base: [f32; 3],
+    pub metallic: f32,
+    pub rough: f32,
+    /// Emission strength for the app-driven glow kinds.
+    pub emissive: f32,
+    /// glTF emissive factor (linear RGB) – used for Normal materials with emissive textures/colours.
+    pub emissive_factor: [f32; 3],
+    pub normal_scale: f32,
+    pub kind: MatKind,
+    pub tex: TexRefs,
+    /// Base colour alpha and whether the material is alpha-blended (glTF BLEND).
+    pub alpha: f32,
+    pub blend: bool,
+    /// KHR_texture_transform of the base-colour texture applied to all textures of the material: scale.xy, offset.xy.
+    pub uv_xf: [f32; 4],
+}
+
 pub struct Part {
-    pub name: &'static str,
+    pub name: String,
     pub mesh: Mesh,
+    /// Model-space transform (already includes the glTF node hierarchy).
     pub transform: Mat4,
-    /// Pivot (in model space) around which stick tilt happens.
+    /// Pivot (model space) around which stick tilt / trigger rotation happens.
     pub pivot: Vec3,
-    pub paint: Paint,
+    pub material: Material,
     pub anim: Anim,
 }
 
-fn part(name: &'static str, mesh: Mesh, t: Mat4, paint: Paint, anim: Anim) -> Part {
-    Part { name, mesh, transform: t, pivot: t.transform_point3(Vec3::ZERO), paint, anim }
+fn gamma_to_linear(c: [f32; 3]) -> [f32; 3] {
+    [c[0].powf(2.2), c[1].powf(2.2), c[2].powf(2.2)]
 }
 
+fn paint_material(p: Paint) -> Material {
+    let m = |c: [f32; 3], metallic, rough, emissive, kind| Material {
+        base: gamma_to_linear(c),
+        metallic,
+        rough,
+        emissive,
+        emissive_factor: [0.0; 3],
+        normal_scale: 1.0,
+        kind,
+        tex: TexRefs::default(),
+        alpha: 1.0,
+        blend: false,
+        uv_xf: [1.0, 1.0, 0.0, 0.0],
+    };
+    match p {
+        Paint::Body => m([0.92, 0.93, 0.95], 0.0, 0.6, 0.0, MatKind::Normal),
+        Paint::Dark => m([0.1, 0.11, 0.13], 0.0, 0.45, 0.0, MatKind::Normal),
+        Paint::Metal => m([0.6, 0.63, 0.67], 1.0, 0.3, 0.0, MatKind::Normal),
+        Paint::Accent => m([0.2, 0.5, 1.0], 0.0, 0.4, 0.0, MatKind::Accent),
+        Paint::Glow => m([0.2, 0.5, 1.0], 0.0, 0.3, 2.5, MatKind::Glow),
+    }
+}
+
+/// Animation kind derived from a glTF node / part name.
+pub fn anim_for_name(name: &str) -> Anim {
+    // Blender appends .001, .002 … to duplicate names.
+    let base = match name.rsplit_once('.') {
+        Some((b, s)) if !s.is_empty() && s.chars().all(|c| c.is_ascii_digit()) => b,
+        _ => name,
+    };
+    let n = base.to_ascii_lowercase();
+    match n.as_str() {
+        "stick_l" => return Anim::Stick { right: false },
+        "stick_r" => return Anim::Stick { right: true },
+        "trigger_l" => return Anim::Trigger { right: false },
+        "trigger_r" => return Anim::Trigger { right: true },
+        "bumper_l" => return Anim::Button("l1"),
+        "bumper_r" => return Anim::Button("r1"),
+        "touchpad" => return Anim::Touchpad,
+        _ => {}
+    }
+    if let Some(rest) = n.strip_prefix("dpad_") {
+        return match rest {
+            "up" => Anim::Button("up"),
+            "down" => Anim::Button("down"),
+            "left" => Anim::Button("left"),
+            "right" => Anim::Button("right"),
+            _ => Anim::None,
+        };
+    }
+    if let Some(rest) = n.strip_prefix("face_") {
+        return match rest {
+            "triangle" => Anim::Button("triangle"),
+            "circle" => Anim::Button("circle"),
+            "cross" => Anim::Button("cross"),
+            "square" => Anim::Button("square"),
+            "a" => Anim::Button("a"),
+            "b" => Anim::Button("b"),
+            "x" => Anim::Button("x"),
+            "y" => Anim::Button("y"),
+            _ => Anim::None,
+        };
+    }
+    if let Some(rest) = n.strip_prefix("btn_") {
+        return match rest {
+            "home" => Anim::Button("home"),
+            "mute" => Anim::Button("mute"),
+            "create" => Anim::Button("create"),
+            "options" => Anim::Button("options"),
+            "share" => Anim::Button("share"),
+            "view" => Anim::Button("view"),
+            "menu" => Anim::Button("menu"),
+            "guide" => Anim::Button("guide"),
+            _ => Anim::None,
+        };
+    }
+    Anim::None
+}
+
+fn part(name: &'static str, mesh: Mesh, t: Mat4, paint: Paint, anim: Anim) -> Part {
+    Part { name: name.to_string(), mesh, transform: t, pivot: t.transform_point3(Vec3::ZERO), material: paint_material(paint), anim }
+}
 fn at(x: f32, y: f32, z: f32) -> Mat4 {
     Mat4::from_translation(Vec3::new(x, y, z))
 }

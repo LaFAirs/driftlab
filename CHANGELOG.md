@@ -6,6 +6,30 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-19
+
+### Changed
+- Controller models are now real, licensed `.glb` models (CC BY 4.0, see `CREDITS.md`) instead of code-generated geometry: DualSense, DualShock 4 and Xbox One/Series; DualSense Edge and Xbox Elite are derived from them with own rear paddles.
+- New PBR renderer: image-based lighting (CC0 HDRI), soft key-light shadow, ACES tone mapping, 4x MSAA, textured materials, emissive parts, alpha-blended parts, ground shadow and reflection.
+- Moving parts (sticks, triggers, bumpers, d-pad, face buttons, touchpad, buttons) are animated through named glTF nodes with real pivots.
+- Manufacturer lettering and logos are removed from all models; face symbols and d-pad blocks of the DualSense models were rebuilt as own work.
+
+### Fixed
+- Memory growth while the window was minimised (unbounded input queue).
+- Corrupt `profiles.json` / `settings.toml` are quarantined instead of overwritten; atomic saves.
+- Hard-edged shadow rectangle on light themes; invisible slider rails on dark themes.
+- Author/licence data verified against the Sketchfab API.
+
+### Added
+- `docs/AUDIT.md`.
+- `tools/models/`: reproducible Blender preparation scripts for every model.
+- Credits for models and HDRI in `CREDITS.md`, `assets/models/LICENSES/` and the About dialog.
+
+### Known limitations
+- Edge and Elite are approximations (standard-model shapes plus paddles), not scans of those products.
+- Bumpers and triggers of the Edge and Elite models are not separately animated.
+- The DualSense touchpad is black by design choice (the real one is white).
+
 ## [0.1.0] - 2026-11-19
 
 First public release.
@@ -27,3 +51,4 @@ First public release.
 
 [Unreleased]: https://github.com/LaFAirs/driftlab/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/LaFAirs/driftlab/releases/tag/v0.1.0
+

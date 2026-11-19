@@ -8,4 +8,14 @@ license.workspace = true
 bytemuck = "1.25.2"
 glam = "0.30"
 wgpu = "30.0.2"
+gltf = { version = "1", default-features = false, features = ["import", "names", "utils", "KHR_materials_emissive_strength", "KHR_texture_transform"] }
+
+half = "2"
+image = { version = "0.25", default-features = false, features = ["hdr"] }
+
+[dev-dependencies]
+image = { version = "0.25", default-features = false, features = ["png", "hdr"] }
+pollster = "1.0.3"
+
+
 
