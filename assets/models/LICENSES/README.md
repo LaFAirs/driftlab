@@ -1,6 +1,6 @@
 # Model licences and attribution
 
-The three source models are licensed **CC BY 4.0** (full text: `CC-BY-4.0.txt`). The HDRI is **CC0 1.0** (`CC0-1.0.txt`).
+The three source models are licensed **CC BY 4.0** (full text: `CC-BY-4.0.txt`). The studio lighting is procedural (own work).
 Attribution required by CC BY 4.0 (title, author, source, licence, changes):
 
 1. **"Sony PS5 DualSense Controller"** by *be the knight* (jayhystic22) – https://sketchfab.com/3d-models/b1d054ee67204ec1984d5fbebd707cde – CC BY 4.0.

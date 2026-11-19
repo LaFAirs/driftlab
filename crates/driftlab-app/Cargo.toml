@@ -10,6 +10,9 @@ description = "DriftLab ??? stick drift diagnosis and calibration"
 name = "driftlab"
 path = "src/main.rs"
 
+[build-dependencies]
+embed-resource = "3"
+
 [dependencies]
 driftlab-core = { path = "../driftlab-core" }
 driftlab-render = { path = "../driftlab-render" }

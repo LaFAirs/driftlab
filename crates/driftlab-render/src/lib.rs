@@ -25,7 +25,6 @@ const MAX_OBJECTS: u64 = 2048;
 const SHADOW_SIZE: u32 = 2048;
 const COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
-const HDRI: &[u8] = include_bytes!("../../../assets/env/studio_small_03_1k.hdr");
 
 /// Embedded GLB for a model, if it has been built.
 fn glb_bytes(kind: ModelKind) -> Option<&'static [u8]> {
@@ -367,10 +366,7 @@ impl Renderer {
         });
 
         // Image-based lighting resources.
-        let env = env::build(HDRI).unwrap_or_else(|e| {
-            eprintln!("driftlab-render: HDRI failed ({e}); using a flat environment");
-            flat_env()
-        });
+        let env = env::build_studio();
         let spec_tex = device.create_texture_with_data(
             &queue,
             &wgpu::TextureDescriptor {
@@ -501,7 +497,7 @@ impl Renderer {
             env,
             models: HashMap::new(),
             targets: None,
-            exposure: 0.15,
+            exposure: 0.30,
             generation: 0,
         }
     }
@@ -665,10 +661,12 @@ impl Renderer {
         let Some(t) = &self.targets else { return false };
         let model = &self.models[&kind_id(kind)];
         let aspect = t.size.0 as f32 / t.size.1 as f32;
-        let dist = model.radius * 2.9 / pose.zoom.clamp(0.4, 3.0);
+        // product-photo look: telephoto lens, camera further away
+        // narrow viewports (aspect < 1.55) need more distance so the controller keeps ~75 % of the width without cropping
+        let dist = model.radius * 3.3 * (1.55 / aspect).max(1.0) / pose.zoom.clamp(0.4, 3.0);
         let eye = Vec3::new(0.0, dist * pose.pitch.sin(), dist * pose.pitch.cos());
         let view = Mat4::look_at_rh(eye, Vec3::new(0.0, -0.05, 0.0), Vec3::Y);
-        let proj = Mat4::perspective_rh(30f32.to_radians(), aspect, 0.5, 60.0);
+        let proj = Mat4::perspective_rh(22f32.to_radians(), aspect, 0.5, 80.0);
         let root = Mat4::from_translation(Vec3::new(0.0, pose.offset_y, 0.0))
             * Mat4::from_rotation_y(pose.yaw)
             * Mat4::from_rotation_x(pose.tilt.0)
@@ -714,7 +712,6 @@ impl Renderer {
         // Matte / satin plastics: the downloaded textures are glossier than the real products.
         let rough_min = match kind {
             ModelKind::DualShock4 => 0.6,
-            ModelKind::DualSense | ModelKind::DualSenseEdge => 0.34,
             ModelKind::Xbox | ModelKind::XboxElite => 0.5,
             _ => 0.0,
         };
@@ -925,19 +922,4 @@ impl Renderer {
         buf.unmap();
         Some((w, h, out))
     }
-}
-
-/// Neutral grey environment used only if the bundled HDRI cannot be decoded.
-fn flat_env() -> env::Env {
-    let mut spec = Vec::new();
-    for l in 0..env::SPEC_LEVELS {
-        for _ in 0..((env::SPEC_W >> l) * (env::SPEC_H >> l)) {
-            for v in [0.5f32, 0.5, 0.5, 1.0] {
-                spec.extend_from_slice(&half::f16::from_f32(v).to_le_bytes());
-            }
-        }
-    }
-    let mut sh = [[0.0f32; 4]; 9];
-    sh[0] = [1.7, 1.7, 1.7, 0.0];
-    env::Env { sh, key_dir: Vec3::new(-0.5, 0.8, 0.4).normalize(), spec, lut: vec![128; (env::LUT_SIZE * env::LUT_SIZE * 4) as usize] }
 }

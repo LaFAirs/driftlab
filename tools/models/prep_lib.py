@@ -561,3 +561,21 @@ def world_bbox(ob):
     lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
     hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
     return lo, hi
+
+
+def patch_glb_factors(path, patches):
+    """Edit material factors in an exported .glb (JSON chunk only): patches = {material_name: {"roughnessFactor": 0.5, ...}}."""
+    import json
+    import struct
+
+    data = open(path, "rb").read()
+    jlen = struct.unpack_from("<I", data, 12)[0]
+    doc = json.loads(data[20:20 + jlen].decode("utf8"))
+    for m in doc.get("materials", []):
+        for k, v in patches.get(m.get("name"), {}).items():
+            m.setdefault("pbrMetallicRoughness", {})[k] = v
+    js = json.dumps(doc, separators=(",", ":")).encode("utf8")
+    js += b" " * ((4 - len(js) % 4) % 4)
+    rest = data[20 + jlen:]
+    out = struct.pack("<4sII", b"glTF", 2, 20 + len(js) + len(rest)) + struct.pack("<I4s", len(js), b"JSON") + js + rest
+    open(path, "wb").write(out)

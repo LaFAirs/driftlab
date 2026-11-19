@@ -1,4 +1,4 @@
-//! Image-based lighting from an equirectangular Radiance HDR (Poly Haven `studio_small_03`, CC0).
+//! Image-based lighting from a procedural product-photo studio (bright cyclorama + key / fill / rim softboxes).
 //!
 //! Pre-computed on the CPU at start-up (well under a second):
 //! * diffuse irradiance as 9 spherical-harmonics coefficients
@@ -18,9 +18,9 @@ pub struct Env {
     /// SH9 irradiance coefficients (RGB in xyz).
     pub sh: [[f32; 4]; 9],
     pub key_dir: Vec3,
-    /// Rgba16F bytes for all mip levels, level 0 first (level k is `SPEC_W>>k` × `SPEC_H>>k`).
+    /// Rgba16F bytes for all mip levels, level 0 first (level k is `SPEC_W>>k` Ã— `SPEC_H>>k`).
     pub spec: Vec<u8>,
-    /// Rgba8 BRDF LUT, `LUT_SIZE`², x = NdotV, y = roughness.
+    /// Rgba8 BRDF LUT, `LUT_SIZE`Â², x = NdotV, y = roughness.
     pub lut: Vec<u8>,
 }
 
@@ -72,14 +72,14 @@ impl Equirect {
     }
 }
 
-/// Equirect (u, v) → direction. +Y is up; u = 0.5 looks towards +X.
+/// Equirect (u, v) â†’ direction. +Y is up; u = 0.5 looks towards +X.
 pub fn dir_of(u: f32, v: f32) -> Vec3 {
     let phi = (u - 0.5) * TAU;
     let theta = v * PI;
     Vec3::new(theta.sin() * phi.cos(), theta.cos(), theta.sin() * phi.sin())
 }
 
-/// Direction → equirect (u, v); inverse of `dir_of` (the WGSL shader uses the same convention).
+/// Direction â†’ equirect (u, v); inverse of `dir_of` (the WGSL shader uses the same convention).
 pub fn uv_of(d: Vec3) -> (f32, f32) {
     let d = d.normalize_or_zero();
     (d.z.atan2(d.x) / TAU + 0.5, d.y.clamp(-1.0, 1.0).acos() / PI)
@@ -113,12 +113,37 @@ fn f16_bytes(out: &mut Vec<u8>, c: [f32; 3]) {
     }
 }
 
-pub fn build(hdr_bytes: &[u8]) -> Result<Env, String> {
-    let img = image::ImageReader::with_format(std::io::Cursor::new(hdr_bytes), image::ImageFormat::Hdr)
-        .decode()
-        .map_err(|e| e.to_string())?
-        .to_rgb32f();
-    let full = Equirect { w: img.width() as usize, h: img.height() as usize, px: img.pixels().map(|p| p.0).collect() };
+/// Procedural product-photo studio: bright white cyclorama room plus three softboxes (key, fill, rim).
+/// A white surround is what makes white plastic read white instead of chrome-grey.
+pub fn build_studio() -> Env {
+    let (w, h) = (512usize, 256usize);
+    let lobes: [(Vec3, f32, f32); 5] = [
+        (Vec3::new(-0.55, 0.65, 0.55), 9.0, 0.42),  // key: front-left, above
+        (Vec3::new(0.85, 0.30, 0.45), 2.6, 0.55),   // fill: front-right
+        (Vec3::new(0.35, 0.45, -0.82), 7.0, 0.30),  // rim right-back
+        (Vec3::new(-0.45, 0.40, -0.80), 5.0, 0.30), // rim left-back
+        (Vec3::new(0.0, 1.0, 0.1), 3.2, 0.55),      // overhead strip
+    ];
+    let lobes = lobes.map(|(d, i, s)| (d.normalize(), i, s));
+    let mut px = vec![[0.0f32; 3]; w * h];
+    for y in 0..h {
+        for x in 0..w {
+            let d = dir_of((x as f32 + 0.5) / w as f32, (y as f32 + 0.5) / h as f32);
+            // cyclorama: light grey walls, brighter ceiling, slightly darker floor
+            let mut l = if d.y >= 0.0 { 0.55 + 0.45 * d.y.powf(0.7) } else { 0.62 + 0.25 * d.y };
+            for (ld, i, s) in &lobes {
+                let ang = d.dot(*ld).clamp(-1.0, 1.0).acos();
+                // flat-topped softbox falloff
+                let k = (1.0 - ((ang / s).powi(4)).min(1.0)).max(0.0);
+                l += i * k * k;
+            }
+            px[y * w + x] = [l * 1.0, l * 0.995, l * 0.975]; // faintly warm white
+        }
+    }
+    build_from(&Equirect { w, h, px })
+}
+
+fn build_from(full: &Equirect) -> Env {
     let src = full.downsample(SPEC_W as usize, SPEC_H as usize);
 
     // Key light: luminance-weighted centroid of the brightest 0.5 % of the pixels.
@@ -229,7 +254,7 @@ pub fn build(hdr_bytes: &[u8]) -> Result<Env, String> {
             ]);
         }
     }
-    Ok(Env { sh: sh_out, key_dir, spec, lut })
+    Env { sh: sh_out, key_dir, spec, lut }
 }
 
 #[cfg(test)]
@@ -245,9 +270,8 @@ mod tests {
     }
 
     #[test]
-    fn builds_from_bundled_hdri() {
-        let bytes = include_bytes!("../../../assets/env/studio_small_03_1k.hdr");
-        let e = build(bytes).expect("hdri");
+    fn builds_procedural_studio() {
+        let e = build_studio();
         assert!(e.key_dir.y > 0.0, "studio key light comes from above: {:?}", e.key_dir);
         assert!(e.sh[0][0] > 0.05, "non-black irradiance");
         let expect: usize = (0..SPEC_LEVELS).map(|l| ((SPEC_W >> l) * (SPEC_H >> l)) as usize * 8).sum();

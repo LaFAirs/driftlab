@@ -267,6 +267,10 @@ impl App {
             }
             match ev {
                 Event::Added(info, caps, handle) => {
+                    // README screenshots must only ever show the simulated controller, never real hardware.
+                    if self.shot.is_some() && !info.id.starts_with("mock-") {
+                        continue;
+                    }
                     if self.devices.iter().any(|d| d.info.id == info.id && d.removed_at.is_none()) {
                         continue;
                     }
