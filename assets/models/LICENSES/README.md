@@ -3,7 +3,7 @@
 The three source models are licensed **CC BY 4.0** (full text: `CC-BY-4.0.txt`). The HDRI is **CC0 1.0** (`CC0-1.0.txt`).
 Attribution required by CC BY 4.0 (title, author, source, licence, changes):
 
-1. **"Sony PS5 DualSense Controller"** by *be the knight* (Jayakrishnan Marath) – https://sketchfab.com/3d-models/b1d054ee67204ec1984d5fbebd707cde – CC BY 4.0.
+1. **"Sony PS5 DualSense Controller"** by *be the knight* (jayhystic22) – https://sketchfab.com/3d-models/b1d054ee67204ec1984d5fbebd707cde – CC BY 4.0.
    Used for `dualsense.glb` and, extended with own paddles, for `dualsense_edge.glb`.
    Changes: re-scaled, origin re-centred, moving parts split into named nodes, logos and printed lettering removed, decimated,
    textures resized, button caps / d-pad / touchpad / triggers re-materialled, own face symbols and d-pad blocks added (Edge: own rear paddles).
@@ -19,3 +19,4 @@ Own work (not from the sources above): rear paddles of the Edge / Elite models, 
 Evaluated but **not used**: "Dualsense" by miwaVV, "XBOX ELITE 2" by Vrah (Wee.Patt) and an Elite alternative by Rusfort.
 
 The licence of these works does not imply endorsement by the authors. If you are an author and want a change to this attribution, please open an issue.
+

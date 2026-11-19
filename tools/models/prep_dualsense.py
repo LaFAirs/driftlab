@@ -1,4 +1,4 @@
-﻿"""Prepare 'Sony PS5 DualSense Controller' by be the knight (CC BY 4.0) for DriftLab.
+"""Prepare 'Sony PS5 DualSense Controller' by be the knight (CC BY 4.0) for DriftLab.
 
 blender -b -P tools/models/prep_dualsense.py -- --in assets/models/incoming/dualsense.glb --out assets/models/dualsense.glb [--preview x.png]
 Changes: re-scaled to 160 mm, re-oriented (triggers +Y), PS logo removed, moving parts split into named nodes with real pivots,

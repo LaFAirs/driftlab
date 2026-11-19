@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
@@ -14,7 +14,14 @@ All notable changes to this project are documented here. The format follows
 - Moving parts (sticks, triggers, bumpers, d-pad, face buttons, touchpad, buttons) are animated through named glTF nodes with real pivots.
 - Manufacturer lettering and logos are removed from all models; face symbols and d-pad blocks of the DualSense models were rebuilt as own work.
 
+### Fixed
+- Memory growth while the window was minimised (unbounded input queue).
+- Corrupt `profiles.json` / `settings.toml` are quarantined instead of overwritten; atomic saves.
+- Hard-edged shadow rectangle on light themes; invisible slider rails on dark themes.
+- Author/licence data verified against the Sketchfab API.
+
 ### Added
+- `docs/AUDIT.md`.
 - `tools/models/`: reproducible Blender preparation scripts for every model.
 - Credits for models and HDRI in `CREDITS.md`, `assets/models/LICENSES/` and the About dialog.
 

@@ -222,8 +222,10 @@ fn vs_ground(@builtin(vertex_index) i: u32) -> GroundOut {
 @fragment
 fn fs_ground(in: GroundOut) -> @location(0) vec4<f32> {
     let sh = shadow_factor(in.wpos, vec3<f32>(0.0, 1.0, 0.0));
-    let d = length(in.wpos.xz) / 6.0;
-    let falloff = clamp(1.0 - d * d, 0.0, 1.0);
+    // Fade to zero well inside the viewport so the shadow never ends in a hard rectangle on light themes.
+    let d = length(in.wpos.xz * vec2<f32>(1.0, 1.25)) / 2.3;
+    let f0 = clamp(1.0 - d * d, 0.0, 1.0);
+    let falloff = f0 * f0;
     let blob = exp(-pow(length(in.wpos.xz * vec2<f32>(0.75, 1.1)), 2.0) * 0.22) * 0.30;
     let a = ((1.0 - sh) * 0.5 + blob) * g.misc.z * falloff;
     return vec4<f32>(0.0, 0.0, 0.0, clamp(a, 0.0, 0.8));
@@ -238,3 +240,4 @@ fn fs_blend(in: VsOut) -> @location(0) vec4<f32> {
     let c = finish_colour(shade(in.wpos, in.normal, in.uv, false));
     return vec4<f32>(c, clamp(a, 0.0, 1.0));
 }
+

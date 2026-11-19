@@ -1,4 +1,4 @@
-﻿"""Prepare 'Xbox One X/S' by TdoubleU8 (CC BY 4.0) for DriftLab.
+"""Prepare 'Xbox One X/S' by TdoubleU8 (CC BY 4.0) for DriftLab.
 
 blender -b -P tools/models/prep_xbox.py -- --in assets/models/incoming/xbox.glb --out assets/models/xbox.glb
 The source file contains two consoles and two controllers; only the black controller (mesh 'Object_11') is kept.

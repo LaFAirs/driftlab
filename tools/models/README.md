@@ -1,4 +1,4 @@
-﻿# Model preparation (Blender)
+# Model preparation (Blender)
 
 Reproducible preparation of the `.glb` models in `assets/models/` from the CC BY 4.0 Sketchfab sources (see `CREDITS.md`).
 Download the three source models (GLB) into `assets/models/incoming/` (ignored by git) as `dualsense.glb`, `dualshock4.glb`, `xbox.glb`, then:

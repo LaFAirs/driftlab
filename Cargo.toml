@@ -1,4 +1,4 @@
-﻿[workspace]
+[workspace]
 resolver = "2"
 members = ["crates/driftlab-core", "crates/driftlab-render", "crates/driftlab-app", "crates/driftlab-cli", "xtask"]
 

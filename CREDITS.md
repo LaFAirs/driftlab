@@ -13,8 +13,8 @@ Only **three** source models are used. The two "Edge / Elite" variants are deriv
 
 | Model in DriftLab | Source model | Author | Own additions |
 |---|---|---|---|
-| DualSense | [Sony PS5 DualSense Controller](https://sketchfab.com/3d-models/b1d054ee67204ec1984d5fbebd707cde) | be the knight (Jayakrishnan Marath) | solid satin button caps and d-pad blocks, △ ○ ✕ □ symbols, black touchpad material |
-| DualSense Edge | same DualSense model | be the knight (Jayakrishnan Marath) | same as above **plus four rear paddles** (own modelling) |
+| DualSense | [Sony PS5 DualSense Controller](https://sketchfab.com/3d-models/b1d054ee67204ec1984d5fbebd707cde) | be the knight (jayhystic22) | solid satin button caps and d-pad blocks, △ ○ ✕ □ symbols, black touchpad material |
+| DualSense Edge | same DualSense model | be the knight (jayhystic22) | same as above **plus four rear paddles** (own modelling) |
 | DualShock 4 | [DualShock 4 PlayStation Controller](https://sketchfab.com/3d-models/e3c2f0dc16524fc19cdde45bad1de1a9) | shaielwolf | plain black PS button, lettering painted out of the textures |
 | Xbox One / Series | [Xbox One X/S (Controller)](https://sketchfab.com/3d-models/294f13ab554f4d4d832b271045bda4fa) | TdoubleU8 | logo removed, plain glowing guide button, repaired trigger meshes |
 | Xbox Elite | same Xbox One model | TdoubleU8 | same as above **plus four rear paddles** (own modelling) |
@@ -45,3 +45,4 @@ not scans of those products.
 ## Libraries
 
 egui / eframe, wgpu, gltf, glam, hidapi, gilrs, image and the other crates listed in `Cargo.lock` – see their respective licences (checked with `cargo deny`).
+

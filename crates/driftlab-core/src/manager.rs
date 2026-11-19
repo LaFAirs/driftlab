@@ -22,6 +22,9 @@ pub enum Event {
 /// Upper bound for the per-device polling rate in Hz (0 = as fast as the device delivers).
 pub static POLL_HZ: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(250);
 
+/// Back-pressure limit for the UI event queue (about four seconds of input at 250 Hz).
+const MAX_QUEUED_EVENTS: usize = 1024;
+
 type Job = Box<dyn FnOnce(&mut dyn ControllerDriver) + Send>;
 
 /// Handle to run closures on the device thread.
@@ -61,7 +64,10 @@ pub fn spawn_device(mut driver: Box<dyn ControllerDriver>, events: Sender<Event>
                 match driver.poll() {
                     Ok(s) => {
                         errs = 0;
-                        let _ = events.send(Event::Input(id.clone(), Box::new(s)));
+                        // UI not draining (minimised / occluded window): drop samples instead of growing the queue without bound.
+                        if events.len() < MAX_QUEUED_EVENTS {
+                            let _ = events.send(Event::Input(id.clone(), Box::new(s)));
+                        }
                         let hz = POLL_HZ.load(Ordering::Relaxed);
                         if hz > 0 {
                             let tick = Duration::from_micros(1_000_000 / u64::from(hz));
@@ -305,5 +311,17 @@ mod tests {
             }
         }
         assert!(removed);
+    }
+
+    #[test]
+    fn event_queue_stays_bounded_when_ui_does_not_drain() {
+        POLL_HZ.store(0, Ordering::Relaxed); // as fast as the mock delivers
+        let (tx, rx) = unbounded();
+        let stop = Arc::new(AtomicBool::new(false));
+        spawn_device(Box::new(crate::mock::MockDriver::new(Family::DualSense)), tx, stop.clone());
+        std::thread::sleep(Duration::from_millis(800));
+        assert!(rx.len() <= MAX_QUEUED_EVENTS + 2, "queue grew to {}", rx.len());
+        stop.store(true, Ordering::Relaxed);
+        POLL_HZ.store(250, Ordering::Relaxed);
     }
 }

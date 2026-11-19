@@ -327,7 +327,9 @@ pub fn apply(ctx: &egui::Context, t: &Tokens, scale: f32) {
     }
     v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, c32(t.border));
     v.widgets.noninteractive.bg_fill = c32(t.card);
-    v.widgets.inactive.bg_fill = c32(lerp_rgb(t.card, t.border, 0.5));
+    // slider rails / checkbox frames use bg_fill: keep them clearly visible on every theme
+    v.widgets.inactive.bg_fill = c32(lerp_rgb(t.card, t.text, 0.22));
+    v.slider_trailing_fill = true;
     v.widgets.inactive.weak_bg_fill = c32(lerp_rgb(t.card, t.border, 0.5));
     v.widgets.hovered.bg_fill = c32(t.card_hover);
     v.widgets.hovered.weak_bg_fill = c32(t.card_hover);

@@ -57,6 +57,32 @@ Stick drift has two causes: a **bad calibration** (fixable) or **worn potentiome
 </tr>
 </table>
 
+## The 3D models
+
+<table>
+<tr>
+<td><img src=".github/assets/models/dualsense.png" alt="DualSense"><br><sub>DualSense</sub></td>
+<td><img src=".github/assets/models/edge.png" alt="DualSense Edge"><br><sub>DualSense Edge (approximation)</sub></td>
+<td><img src=".github/assets/models/ds4.png" alt="DualShock 4"><br><sub>DualShock 4</sub></td>
+</tr>
+<tr>
+<td><img src=".github/assets/models/xbox.png" alt="Xbox One / Series"><br><sub>Xbox One / Series</sub></td>
+<td><img src=".github/assets/models/elite.png" alt="Xbox Elite"><br><sub>Xbox Elite (approximation)</sub></td>
+<td></td>
+</tr>
+</table>
+
+*DriftLab is not affiliated with Sony, Microsoft or any controller manufacturer. Product names are trademarks of their owners; no logos are shown.*
+
+## Known limitations
+
+- Hardware calibration (DualShock 4, DualSense / Edge) follows the public protocol and is covered by tests, but **has not been verified on physical hardware** – see [`docs/HARDWARE_TESTING.md`](docs/HARDWARE_TESTING.md).
+- No system-wide virtual controller (no maintained driver on Windows/macOS); use the Steam Input export.
+- Edge and Elite 3D models are approximations (standard model + own paddles). DualSense bumpers are part of the shell mesh and not animated separately; the DualSense touchpad is shown black.
+- Rumble for Xbox / generic pads is not implemented; Xbox controllers have no open calibration protocol.
+- Release binaries are not code-signed (SmartScreen / Gatekeeper warnings).
+- Not tested on 200 % Windows scaling and on Linux/macOS hardware beyond CI builds.
+
 ## Supported controllers
 
 ✅ works · ⚠️ limited (see notes) · ❌ not available

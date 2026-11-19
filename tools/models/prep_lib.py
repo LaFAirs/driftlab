@@ -1,4 +1,4 @@
-﻿"""Shared helpers to turn a downloaded (CC BY) controller model into a DriftLab asset.
+"""Shared helpers to turn a downloaded (CC BY) controller model into a DriftLab asset.
 
 Conventions of the output (Blender space): +X right, +Y towards the triggers (away from the player),
 +Z up, origin at the middle of the housing, real-world size in metres. The glTF exporter converts to Y-up.
