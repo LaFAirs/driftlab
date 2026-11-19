@@ -178,6 +178,9 @@ fn material_of(m: &gltf::Material) -> Material {
         normal_scale: m.normal_texture().map(|t| t.scale()).unwrap_or(1.0),
         kind,
         tex,
+        alpha: c[3],
+        blend: m.alpha_mode() == gltf::material::AlphaMode::Blend,
+        uv_xf: uv_transform(m),
     }
 }
 
@@ -201,4 +204,19 @@ pub fn normalize(parts: &mut [Part]) -> (f32, f32) {
     }
     let half = (mx - mn) * 0.5 * s;
     (-half.y - 0.04, half.length())
+}
+
+/// Scale/offset of the first texture transform found on the material (rotation is not supported).
+fn uv_transform(m: &gltf::Material) -> [f32; 4] {
+    let pbr = m.pbr_metallic_roughness();
+    let t = pbr
+        .base_color_texture()
+        .and_then(|i| i.texture_transform())
+        .or_else(|| m.normal_texture().and(None))
+        .or_else(|| pbr.metallic_roughness_texture().and_then(|i| i.texture_transform()))
+        .or_else(|| m.emissive_texture().and_then(|i| i.texture_transform()));
+    match t {
+        Some(t) => [t.scale()[0], t.scale()[1], t.offset()[0], t.offset()[1]],
+        None => [1.0, 1.0, 0.0, 0.0],
+    }
 }

@@ -31,6 +31,10 @@ const HDRI: &[u8] = include_bytes!("../../../assets/env/studio_small_03_1k.hdr")
 fn glb_bytes(kind: ModelKind) -> Option<&'static [u8]> {
     match kind {
         ModelKind::DualSense => Some(include_bytes!("../../../assets/models/dualsense.glb")),
+        ModelKind::DualSenseEdge => Some(include_bytes!("../../../assets/models/dualsense_edge.glb")),
+        ModelKind::DualShock4 => Some(include_bytes!("../../../assets/models/dualshock4.glb")),
+        ModelKind::Xbox => Some(include_bytes!("../../../assets/models/xbox.glb")),
+        ModelKind::XboxElite => Some(include_bytes!("../../../assets/models/xbox_elite.glb")),
         _ => None,
     }
 }
@@ -121,6 +125,7 @@ struct ObjectU {
     params: [f32; 4],
     extra: [f32; 4],
     emissive: [f32; 4],
+    uvxf: [f32; 4],
 }
 
 struct GpuPart {
@@ -151,6 +156,7 @@ pub struct Renderer {
     queue: wgpu::Queue,
     main_pipe: wgpu::RenderPipeline,
     reflect_pipe: wgpu::RenderPipeline,
+    blend_pipe: wgpu::RenderPipeline,
     ground_pipe: wgpu::RenderPipeline,
     shadow_pipe: wgpu::RenderPipeline,
     globals_buf: wgpu::Buffer,
@@ -307,6 +313,15 @@ impl Renderer {
             Some(wgpu::Face::Front),
             depth_state(false, wgpu::CompareFunction::Always),
             Some(premult),
+            true,
+        );
+        let blend_pipe = make(
+            "blend",
+            "vs",
+            "fs_blend",
+            None,
+            depth_state(false, wgpu::CompareFunction::Less),
+            Some(wgpu::BlendState::ALPHA_BLENDING),
             true,
         );
         let ground_pipe =
@@ -471,6 +486,7 @@ impl Renderer {
             queue,
             main_pipe,
             reflect_pipe,
+            blend_pipe,
             ground_pipe,
             shadow_pipe,
             globals_buf,
@@ -658,7 +674,8 @@ impl Renderer {
             * Mat4::from_rotation_x(pose.tilt.0)
             * Mat4::from_rotation_z(pose.tilt.1)
             * Mat4::from_scale(Vec3::splat(pose.scale.max(0.01)));
-        let ground_y = model.ground_y * pose.scale.max(0.01) + pose.offset_y;
+        // A hair below the lowest vertex: contact points would otherwise z-fight with their own mirrored reflection.
+        let ground_y = (model.ground_y - model.radius * 0.006) * pose.scale.max(0.01) + pose.offset_y;
         // Key-light shadow map covering the model.
         let key = self.env.key_dir;
         let r = model.radius * 1.5;
@@ -694,6 +711,13 @@ impl Renderer {
                     || (name == "share" && p == "create")
             })
         };
+        // Matte / satin plastics: the downloaded textures are glossier than the real products.
+        let rough_min = match kind {
+            ModelKind::DualShock4 => 0.6,
+            ModelKind::DualSense | ModelKind::DualSenseEdge => 0.34,
+            ModelKind::Xbox | ModelKind::XboxElite => 0.5,
+            _ => 0.0,
+        };
         let mirror = Mat4::from_translation(Vec3::new(0.0, ground_y, 0.0))
             * Mat4::from_scale(Vec3::new(1.0, -1.0, 1.0))
             * Mat4::from_translation(Vec3::new(0.0, -ground_y, 0.0));
@@ -714,7 +738,7 @@ impl Renderer {
                 }
                 Anim::Trigger { right } => {
                     let v = if *right { pose.r2 } else { pose.l2 }.clamp(0.0, 1.0);
-                    glow = v * 0.5;
+                    glow = v * 0.12;
                     Some(Mat4::from_translation(p.pivot) * Mat4::from_rotation_x(-v * 0.42) * Mat4::from_translation(-p.pivot))
                 }
                 Anim::Button(name) => {
@@ -754,10 +778,11 @@ impl Renderer {
             let write = |slot: usize, model_m: Mat4, data: &mut Vec<u8>| {
                 let u = ObjectU {
                     model: (root * model_m).to_cols_array_2d(),
-                    color: [mat.base[0], mat.base[1], mat.base[2], 1.0],
+                    color: [mat.base[0], mat.base[1], mat.base[2], mat.alpha],
                     params: [emissive_k + sweep_boost, mat.metallic, mat.rough, glow],
-                    extra: [kind_f, has_normal, mat.normal_scale, 0.0],
+                    extra: [kind_f, has_normal, mat.normal_scale, rough_min],
                     emissive: [emissive_rgb[0], emissive_rgb[1], emissive_rgb[2], 1.0],
+                    uvxf: mat.uv_xf,
                 };
                 let o = slot * OBJ_STRIDE as usize;
                 data[o..o + std::mem::size_of::<ObjectU>()].copy_from_slice(bytemuck::bytes_of(&u));
@@ -825,14 +850,32 @@ impl Renderer {
                 pass.set_bind_group(2, first, &[]);
             }
             pass.draw(0..6, 0..1);
-            // 3. the controller
+            // 3. the controller (opaque parts first, then alpha-blended parts back to front)
             pass.set_pipeline(&self.main_pipe);
             for (i, gp) in model.gpu.iter().enumerate().take(n) {
+                if model.parts[i].material.blend {
+                    continue;
+                }
                 pass.set_bind_group(1, &self.obj_bg, &[(i as u64 * OBJ_STRIDE) as u32]);
                 pass.set_bind_group(2, &model.mat_bgs[gp.mat_bg], &[]);
                 pass.set_vertex_buffer(0, gp.vb.slice(..));
                 pass.set_index_buffer(gp.ib.slice(..), wgpu::IndexFormat::Uint32);
                 pass.draw_indexed(0..gp.n, 0, 0..1);
+                // 4. alpha-blended parts, sorted far to near
+                let mut order: Vec<usize> = (0..n).filter(|i| model.parts[*i].material.blend).collect();
+                order.sort_by(|a, b| {
+                    let d = |i: usize| (root * model.parts[i].transform).transform_point3(Vec3::ZERO).distance(eye);
+                    d(*b).total_cmp(&d(*a))
+                });
+                pass.set_pipeline(&self.blend_pipe);
+                for i in order {
+                    let gp = &model.gpu[i];
+                    pass.set_bind_group(1, &self.obj_bg, &[(i as u64 * OBJ_STRIDE) as u32]);
+                    pass.set_bind_group(2, &model.mat_bgs[gp.mat_bg], &[]);
+                    pass.set_vertex_buffer(0, gp.vb.slice(..));
+                    pass.set_index_buffer(gp.ib.slice(..), wgpu::IndexFormat::Uint32);
+                    pass.draw_indexed(0..gp.n, 0, 0..1);
+                }
             }
         }
         self.queue.submit(Some(enc.finish()));

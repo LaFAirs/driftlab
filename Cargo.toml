@@ -1,9 +1,9 @@
-[workspace]
+﻿[workspace]
 resolver = "2"
 members = ["crates/driftlab-core", "crates/driftlab-render", "crates/driftlab-app", "crates/driftlab-cli", "xtask"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/LaFAirs/driftlab"
@@ -27,3 +27,4 @@ proptest = "1"
 lto = "thin"
 codegen-units = 1
 strip = true
+

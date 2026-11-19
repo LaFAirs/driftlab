@@ -4,4 +4,8 @@
 .DS_Store
 Thumbs.db
 .claude/
+/assets/models/incoming/*.zip
 
+/assets/models/incoming/
+
+__pycache__/

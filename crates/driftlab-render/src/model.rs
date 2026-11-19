@@ -79,6 +79,11 @@ pub struct Material {
     pub normal_scale: f32,
     pub kind: MatKind,
     pub tex: TexRefs,
+    /// Base colour alpha and whether the material is alpha-blended (glTF BLEND).
+    pub alpha: f32,
+    pub blend: bool,
+    /// KHR_texture_transform of the base-colour texture applied to all textures of the material: scale.xy, offset.xy.
+    pub uv_xf: [f32; 4],
 }
 
 pub struct Part {
@@ -106,6 +111,9 @@ fn paint_material(p: Paint) -> Material {
         normal_scale: 1.0,
         kind,
         tex: TexRefs::default(),
+        alpha: 1.0,
+        blend: false,
+        uv_xf: [1.0, 1.0, 0.0, 0.0],
     };
     match p {
         Paint::Body => m([0.92, 0.93, 0.95], 0.0, 0.6, 0.0, MatKind::Normal),
@@ -118,7 +126,12 @@ fn paint_material(p: Paint) -> Material {
 
 /// Animation kind derived from a glTF node / part name.
 pub fn anim_for_name(name: &str) -> Anim {
-    let n = name.to_ascii_lowercase();
+    // Blender appends .001, .002 … to duplicate names.
+    let base = match name.rsplit_once('.') {
+        Some((b, s)) if !s.is_empty() && s.chars().all(|c| c.is_ascii_digit()) => b,
+        _ => name,
+    };
+    let n = base.to_ascii_lowercase();
     match n.as_str() {
         "stick_l" => return Anim::Stick { right: false },
         "stick_r" => return Anim::Stick { right: true },

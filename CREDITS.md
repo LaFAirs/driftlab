@@ -5,19 +5,28 @@
 The controller models were created by the authors below and are used under the
 [Creative Commons Attribution 4.0 International](assets/models/LICENSES/CC-BY-4.0.txt) licence.
 They were downloaded from Sketchfab and then **modified** for DriftLab: scaled to real-world size, origins re-centred,
-moving parts (sticks, triggers, buttons, d-pad, touchpad, lightbar, paddles) separated into named nodes with correct pivots,
-brand logos removed or replaced by plain surfaces, meshes decimated and textures resized (see `tools/models/`).
+moving parts (sticks, triggers, buttons, d-pad, touchpad, lightbar) separated into named nodes with correct pivots,
+brand logos, manufacturer lettering and printed labels removed, meshes decimated, textures resized, and some materials
+replaced (see the reproducible Blender scripts in `tools/models/`).
 
-| Model in DriftLab | Original work | Author | Licence |
+Only **three** source models are used. The two "Edge / Elite" variants are derived from them and extended with our own parts:
+
+| Model in DriftLab | Source model | Author | Own additions |
 |---|---|---|---|
-| DualSense | [Sony PS5 DualSense Controller](https://sketchfab.com/3d-models/b1d054ee67204ec1984d5fbebd707cde) | be the knight (jayhystic22) | CC BY 4.0 |
-| DualSense Edge | [Dualsense](https://sketchfab.com/3d-models/14a6fa6d7078463380cc72fe0bc5acb0) | miwaVV (mishel1337) | CC BY 4.0 |
-| DualShock 4 | [DualShock 4 PlayStation Controller](https://sketchfab.com/3d-models/e3c2f0dc16524fc19cdde45bad1de1a9) | shaielwolf | CC BY 4.0 |
-| Xbox One / Series | [Xbox One X/S (Controller)](https://sketchfab.com/3d-models/294f13ab554f4d4d832b271045bda4fa) | TdoubleU8 | CC BY 4.0 |
-| Xbox Elite | [XBOX ELITE 2](https://sketchfab.com/3d-models/8a9ef66d68be4fb9a1f320ce716a2017) | Vrah (Wee.Patt) | CC BY 4.0 |
+| DualSense | [Sony PS5 DualSense Controller](https://sketchfab.com/3d-models/b1d054ee67204ec1984d5fbebd707cde) | be the knight (Jayakrishnan Marath) | solid satin button caps and d-pad blocks, △ ○ ✕ □ symbols, black touchpad material |
+| DualSense Edge | same DualSense model | be the knight (Jayakrishnan Marath) | same as above **plus four rear paddles** (own modelling) |
+| DualShock 4 | [DualShock 4 PlayStation Controller](https://sketchfab.com/3d-models/e3c2f0dc16524fc19cdde45bad1de1a9) | shaielwolf | plain black PS button, lettering painted out of the textures |
+| Xbox One / Series | [Xbox One X/S (Controller)](https://sketchfab.com/3d-models/294f13ab554f4d4d832b271045bda4fa) | TdoubleU8 | logo removed, plain glowing guide button, repaired trigger meshes |
+| Xbox Elite | same Xbox One model | TdoubleU8 | same as above **plus four rear paddles** (own modelling) |
 
-Per-model attribution notes are in [`assets/models/LICENSES/`](assets/models/LICENSES/). The names and shapes of the
-depicted products are trademarks / designs of their respective owners; DriftLab is not affiliated with them.
+**Not used:** the Sketchfab models "Dualsense" by miwaVV (mishel1337), "XBOX ELITE 2" by Vrah (Wee.Patt) and the Elite
+alternative by Rusfort were evaluated but are not part of DriftLab; they are therefore not credited as used works.
+
+The rear paddles, the face-button symbols and the d-pad blocks are original work made for DriftLab (also CC-compatible
+with the project licence). Per-model attribution notes are in [`assets/models/LICENSES/`](assets/models/LICENSES/).
+The names and shapes of the depicted products are trademarks / designs of their respective owners; DriftLab is not
+affiliated with them. DriftLab Edge and Elite are **approximations** built from the standard-model shapes plus paddles,
+not scans of those products.
 
 ## Environment lighting (CC0)
 

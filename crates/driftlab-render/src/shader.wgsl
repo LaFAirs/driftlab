@@ -20,6 +20,8 @@ struct Object {
     // x = kind (0 normal, 1 accent colour, 2 glow, 3 grip detail, 4 guide glow), y = has normal map, z = normal scale
     extra: vec4<f32>,
     emissive: vec4<f32>,
+    // KHR_texture_transform: scale.xy, offset.xy
+    uvxf: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> g: Globals;
 @group(0) @binding(1) var shadow_tex: texture_depth_2d;
@@ -115,7 +117,8 @@ fn to_srgb(c: vec3<f32>) -> vec3<f32> {
     return select(hi, lo, c <= vec3<f32>(0.0031308));
 }
 
-fn shade(wpos: vec3<f32>, n_geo: vec3<f32>, uv: vec2<f32>, with_shadow: bool) -> vec3<f32> {
+fn shade(wpos: vec3<f32>, n_geo: vec3<f32>, uv_in: vec2<f32>, with_shadow: bool) -> vec3<f32> {
+    let uv = uv_in * o.uvxf.xy + o.uvxf.zw;
     // Derivatives first (uniform control flow); texture reads use explicit gradients afterwards.
     let dp1 = dpdx(wpos);
     let dp2 = dpdy(wpos);
@@ -135,8 +138,8 @@ fn shade(wpos: vec3<f32>, n_geo: vec3<f32>, uv: vec2<f32>, with_shadow: bool) ->
     }
     if (kind == 3) {
         // fine grip texture (procedural normal map)
-        let p = wpos * 260.0;
-        n = normalize(n + 0.22 * vec3<f32>(cos(p.x) * sin(p.y), cos(p.y) * sin(p.z), cos(p.z) * sin(p.x)));
+        let p = wpos * 420.0;
+        n = normalize(n + 0.07 * vec3<f32>(cos(p.x) * sin(p.y), cos(p.y) * sin(p.z), cos(p.z) * sin(p.x)));
     }
     let base_s = textureSampleGrad(t_base, mat_smp, uv, duv1, duv2);
     let mr = textureSampleGrad(t_mr, mat_smp, uv, duv1, duv2);
@@ -146,7 +149,7 @@ fn shade(wpos: vec3<f32>, n_geo: vec3<f32>, uv: vec2<f32>, with_shadow: bool) ->
     var base = o.color.rgb * base_s.rgb;
     if (kind == 1) { base = g.accent.rgb; }
     let metallic = clamp(o.params.y * mr.b, 0.0, 1.0);
-    let rough = clamp(o.params.z * mr.g, 0.045, 1.0);
+    let rough = clamp(max(o.params.z * mr.g, o.extra.w), 0.045, 1.0);
     let v = normalize(g.cam_pos.xyz - wpos);
     let nv = max(dot(n, v), 0.001);
     let f0 = mix(vec3<f32>(0.04), base, metallic);
@@ -224,4 +227,14 @@ fn fs_ground(in: GroundOut) -> @location(0) vec4<f32> {
     let blob = exp(-pow(length(in.wpos.xz * vec2<f32>(0.75, 1.1)), 2.0) * 0.22) * 0.30;
     let a = ((1.0 - sh) * 0.5 + blob) * g.misc.z * falloff;
     return vec4<f32>(0.0, 0.0, 0.0, clamp(a, 0.0, 0.8));
+}
+
+@fragment
+fn fs_blend(in: VsOut) -> @location(0) vec4<f32> {
+    let uvt = in.uv * o.uvxf.xy + o.uvxf.zw;
+    let duv1 = dpdx(uvt);
+    let duv2 = dpdy(uvt);
+    let a = o.color.w * textureSampleGrad(t_base, mat_smp, uvt, duv1, duv2).a;
+    let c = finish_colour(shade(in.wpos, in.normal, in.uv, false));
+    return vec4<f32>(c, clamp(a, 0.0, 1.0));
 }
