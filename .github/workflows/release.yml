@@ -156,7 +156,7 @@ jobs:
           mkdir -p dmg-root
           cp -R dist/mac/DriftLab.app dmg-root/
           ln -s /Applications dmg-root/Applications
-          hdiutil create -volname "DriftLab" -srcfolder dmg-root -ov -format UDZO "dist/DriftLab-${{ steps.v.outputs.version }}-macos-universal.dmg"
+          hdiutil create -volname "DriftLab" -srcfolder dmg-root -size 400m -fs HFS+ -ov -format UDZO "dist/DriftLab-${{ steps.v.outputs.version }}-macos-universal.dmg"
       - name: Notarize (optional)
         if: env.MAC_NOTARY_APPLE_ID != ''
         run: |
