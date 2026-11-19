@@ -41,7 +41,7 @@ impl ViewState {
             tex: None,
             gen: u64::MAX,
             yaw: 0.0,
-            pitch: 0.55,
+            pitch: 0.40,
             zoom: 1.0,
             force_2d,
             gyro_tilt: true,
@@ -54,7 +54,7 @@ impl ViewState {
     pub fn reset_for_new_device(&mut self, now: f64) {
         self.spawn = now;
         self.yaw = 0.0;
-        self.pitch = 0.55;
+        self.pitch = 0.40;
         self.zoom = 1.0;
     }
 
@@ -98,7 +98,7 @@ pub fn show(app: &mut App, ui: &mut Ui, size: Vec2, now: f64, interactive: bool)
         }
         if resp.double_clicked() {
             v.yaw = 0.0;
-            v.pitch = 0.55;
+            v.pitch = 0.40;
             v.zoom = 1.0;
             v.last_interact = now;
         }
@@ -107,7 +107,7 @@ pub fn show(app: &mut App, ui: &mut Ui, size: Vec2, now: f64, interactive: bool)
     // Idle spin / float.
     let idle = !reduced && now - v.last_interact > 3.0 && wp.is_none();
     if idle {
-        v.yaw = ease_yaw(v.yaw, (now as f32 * 0.35).sin() * 0.45, 0.02);
+        v.yaw = ease_yaw(v.yaw, 0.18 + (now as f32 * 0.22).sin() * 0.30, 0.02);
     }
     // Gyro tilt (smoothed).
     let target_tilt = match (&input.gyro, v.gyro_tilt) {

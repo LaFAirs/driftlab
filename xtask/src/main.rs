@@ -12,63 +12,13 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("workspace root").to_path_buf()
 }
 
-/// Signed distance helpers (logo is defined on a 256×256 canvas).
-fn logo_pixel(x: f32, y: f32, with_bg: bool) -> Rgba<u8> {
-    let (cx, cy) = (x - 128.0, y - 128.0);
-    let r = (cx * cx + cy * cy).sqrt();
-    let dot = ((x - 146.0).powi(2) + (y - 116.0).powi(2)).sqrt();
-    let in_round = {
-        let (qx, qy) = (cx.abs() - (128.0 - 56.0), cy.abs() - (128.0 - 56.0));
-        let outside = (qx.max(0.0).powi(2) + qy.max(0.0).powi(2)).sqrt() + qx.max(qy).min(0.0) - 56.0;
-        outside <= 0.0
-    };
-    let tick = |a: f32, b: f32, c: f32, d: f32| x >= a && x <= b && y >= c && y <= d;
-    let ticks = tick(123.0, 133.0, 18.0, 52.0)
-        || tick(123.0, 133.0, 204.0, 238.0)
-        || tick(18.0, 52.0, 123.0, 133.0)
-        || tick(204.0, 238.0, 123.0, 133.0);
-    if dot <= 26.0 {
-        Rgba([45, 107, 255, 255])
-    } else if (77.0..=91.0).contains(&(r - 0.0)) && (r - 84.0).abs() <= 7.0 || ticks {
-        Rgba([236, 240, 247, 255])
-    } else if with_bg && in_round {
-        let t = (x + y) / 512.0;
-        let l = |a: f32, b: f32| (a + (b - a) * t) as u8;
-        Rgba([l(27.0, 11.0), l(35.0, 15.0), l(53.0, 23.0), 255])
-    } else {
-        Rgba([0, 0, 0, 0])
-    }
-}
+mod logo;
+
+/// Concept used for the app icon (0 = A orbit, 1 = B cap, 2 = C monogram).
+const CHOSEN: usize = 0;
 
 fn render_logo(size: u32) -> RgbaImage {
-    let mut img = RgbaImage::new(size, size);
-    let ss = 4;
-    for py in 0..size {
-        for px in 0..size {
-            let mut acc = [0u32; 4];
-            for sy in 0..ss {
-                for sx in 0..ss {
-                    let x = (px as f32 + (sx as f32 + 0.5) / ss as f32) / size as f32 * 256.0;
-                    let y = (py as f32 + (sy as f32 + 0.5) / ss as f32) / size as f32 * 256.0;
-                    let p = logo_pixel(x, y, true);
-                    // premultiply for correct edge blending
-                    let a = u32::from(p[3]);
-                    acc[0] += u32::from(p[0]) * a;
-                    acc[1] += u32::from(p[1]) * a;
-                    acc[2] += u32::from(p[2]) * a;
-                    acc[3] += a;
-                }
-            }
-            let n = (ss * ss) as u32;
-            let a = acc[3] / n;
-            let px_val = match (acc[0].checked_div(acc[3]), acc[1].checked_div(acc[3]), acc[2].checked_div(acc[3])) {
-                (Some(r), Some(g), Some(b)) => [r as u8, g as u8, b as u8, a as u8],
-                _ => [0, 0, 0, 0],
-            };
-            img.put_pixel(px, py, Rgba(px_val));
-        }
-    }
-    img
+    logo::render(&logo::all(None)[CHOSEN], size)
 }
 
 fn png_bytes(img: &RgbaImage) -> Vec<u8> {
@@ -80,6 +30,7 @@ fn png_bytes(img: &RgbaImage) -> Vec<u8> {
 }
 
 fn icons() {
+    branding();
     let dir = root().join("assets/icons");
     std::fs::create_dir_all(&dir).expect("mkdir");
     for s in [16, 24, 32, 48, 64, 128, 256, 512, 1024] {
@@ -196,6 +147,83 @@ fn screenshots() {
     println!("screenshots in {}", dir.display());
 }
 
+/// Everything derived from the chosen concept: SVG sources, mono + lockup variants, installer graphics.
+fn branding() {
+    let d = root().join("assets/branding");
+    std::fs::create_dir_all(d.join("installer")).expect("mkdir");
+    let chosen = &logo::all(None)[CHOSEN];
+    let svg = logo::svg(chosen);
+    std::fs::write(root().join("assets/logo.svg"), &svg).expect("logo.svg");
+    std::fs::write(d.join("logo.svg"), &svg).expect("logo.svg");
+    let mono_light = &logo::all(Some([0.93, 0.94, 0.97, 1.0]))[CHOSEN];
+    let mono_dark = &logo::all(Some([0.07, 0.09, 0.13, 1.0]))[CHOSEN];
+    std::fs::write(d.join("logo-mono-light.svg"), logo::svg(mono_light)).expect("mono");
+    std::fs::write(d.join("logo-mono-dark.svg"), logo::svg(mono_dark)).expect("mono");
+    // Lockup: icon + wordmark (SVG uses Inter / system sans; the PNG embeds the real Inter glyphs).
+    let inner = svg.split_once('>').map(|x| x.1).unwrap_or("").trim_end().trim_end_matches("</svg>").to_string();
+    for (name, ink, bg) in [("lockup-dark", "#ECF0F7", "#0E1117"), ("lockup-light", "#111827", "#FFFFFF")] {
+        let s = format!(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 256\" width=\"800\" height=\"256\" role=\"img\" aria-label=\"DriftLab\">\n<rect width=\"800\" height=\"256\" fill=\"{bg}\"/>\n<svg x=\"0\" y=\"0\" width=\"256\" height=\"256\" viewBox=\"0 0 256 256\">{inner}</svg>\n<text x=\"296\" y=\"170\" font-family=\"Inter, 'Segoe UI', Helvetica, Arial, sans-serif\" font-weight=\"600\" font-size=\"118\" letter-spacing=\"-2\" fill=\"{ink}\">DriftLab</text>\n</svg>\n"
+        );
+        std::fs::write(d.join(format!("{name}.svg")), s).expect("lockup");
+    }
+    let inter_semibold = std::fs::read(root().join("assets/fonts/Inter-SemiBold.ttf")).expect("font");
+    let fb = FontRef::try_from_slice(&inter_semibold).expect("font");
+    for (name, ink, bg) in [("lockup-dark", [236u8, 240, 247], [14u8, 17, 23]), ("lockup-light", [17, 24, 39], [255, 255, 255])] {
+        let (w, h) = (1600u32, 512u32);
+        let mut img = RgbaImage::from_pixel(w, h, Rgba([bg[0], bg[1], bg[2], 255]));
+        image::imageops::overlay(&mut img, &render_logo(512), 0, 0);
+        draw_text(&mut img, &fb, "DriftLab", 600.0, 150.0, 236.0, ink);
+        img.save(d.join(format!("{name}.png"))).expect("lockup png");
+    }
+    // Installer graphics (Inno Setup wants 24-bit BMPs).
+    let (w, h) = (164u32, 314u32);
+    let mut wiz = RgbaImage::new(w, h);
+    for y in 0..h {
+        for x in 0..w {
+            let t = y as f32 / h as f32;
+            wiz.put_pixel(x, y, Rgba([(18.0 + 24.0 * t) as u8, (22.0 + 12.0 * t) as u8, (40.0 + 60.0 * t) as u8, 255]));
+        }
+    }
+    image::imageops::overlay(&mut wiz, &render_logo(120), 22, 40);
+    draw_text(&mut wiz, &fb, "DriftLab", 22.0, 175.0, 30.0, [236, 240, 247]);
+    image::DynamicImage::ImageRgba8(wiz).to_rgb8().save(d.join("installer/wizard.bmp")).expect("bmp");
+    let mut small = RgbaImage::from_pixel(55, 55, Rgba([255, 255, 255, 255]));
+    image::imageops::overlay(&mut small, &render_logo(55), 0, 0);
+    image::DynamicImage::ImageRgba8(small).to_rgb8().save(d.join("installer/wizard-small.bmp")).expect("bmp");
+    println!("branding written to {}", d.display());
+}
+fn concepts() {
+    let dir = root().join("assets/branding/concepts");
+    std::fs::create_dir_all(&dir).expect("mkdir");
+    let sizes = [16u32, 32, 48, 256, 512];
+    let (w, rowh) = (2 * (sizes.iter().sum::<u32>() + 6 * 24), 580u32);
+    let mut sheet = RgbaImage::from_pixel(w, rowh * 3, Rgba([243, 245, 249, 255]));
+    let half = w / 2;
+    for y in 0..rowh * 3 {
+        for x in half..w {
+            sheet.put_pixel(x, y, Rgba([14, 17, 23, 255]));
+        }
+    }
+    let concepts = logo::all(None);
+    for (row, c) in concepts.iter().enumerate() {
+        std::fs::write(dir.join(format!("concept-{}.svg", c.name)), logo::svg(c)).expect("svg");
+        std::fs::write(dir.join(format!("concept-{}.png", c.name)), png_bytes(&logo::render(c, 512))).expect("png");
+        for panel in 0..2u32 {
+            let mut x = panel * half + 24;
+            for &s in &sizes {
+                let img = logo::render(c, s);
+                image::imageops::overlay(&mut sheet, &img, i64::from(x), i64::from(row as u32 * rowh + 24 + (512 - s)));
+                x += s + 24;
+            }
+        }
+    }
+    for (i, c) in logo::all(Some([0.93, 0.94, 0.97, 1.0])).iter().enumerate() {
+        std::fs::write(dir.join(format!("mono-{}.svg", ["a-orbit", "b-cap", "c-monogram"][i])), logo::svg(c)).expect("svg");
+    }
+    sheet.save(dir.join("comparison.png")).expect("sheet");
+    println!("concepts written to {}", dir.display());
+}
 fn main() {
     match std::env::args().nth(1).as_deref() {
         Some("icons") => icons(),
@@ -206,6 +234,7 @@ fn main() {
             banners();
             screenshots();
         }
-        _ => eprintln!("usage: cargo xtask <icons|banners|screenshots|all>"),
+        Some("concepts") => concepts(),
+        _ => eprintln!("usage: cargo xtask <icons|banners|concepts|screenshots|all>"),
     }
 }

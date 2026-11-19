@@ -169,7 +169,7 @@ pub fn ui(app: &mut App, ui: &mut Ui, now: f64) {
             "egui / eframe / wgpu (MIT/Apache-2.0) · hidapi · gilrs",
             "Inter typeface (SIL OFL 1.1) · Phosphor Icons (MIT)",
             "3D models (CC BY 4.0, modified, via Sketchfab): DualSense and Edge – be the knight · DualShock 4 – shaielwolf · Xbox One/Series and Elite – TdoubleU8. Edge/Elite paddles, face symbols and d-pad blocks: own work.",
-            "Studio HDRI studio_small_03 by Poly Haven (CC0) · full details in CREDITS.md",
+            "Studio lighting and logo: own work · full details in CREDITS.md",
         ] {
             ui.label(format!("•  {l}"));
         }

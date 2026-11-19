@@ -163,7 +163,7 @@ for o in P.meshes():
         n = 0
         for p in o.data.polygons:
             c = p.center * 1000
-            if (c.y < -33 and abs(c.x) > 42) or (c.y > 20 and abs(c.x) > 36 and c.z < -2):
+            if P.arg("--tipfix") is not None and ((c.y < -33 and abs(c.x) > 42) or (c.y > 20 and abs(c.x) > 36 and c.z < -2)):
                 p.material_index = idx
                 n += 1
         print("GRIP TIP FACES", n)

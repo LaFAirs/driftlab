@@ -28,9 +28,13 @@ The names and shapes of the depicted products are trademarks / designs of their 
 affiliated with them. DriftLab Edge and Elite are **approximations** built from the standard-model shapes plus paddles,
 not scans of those products.
 
-## Environment lighting (CC0)
+## Lighting
 
-* [`studio_small_03`](https://polyhaven.com/a/studio_small_03) HDRI (1k) by Poly Haven – [CC0 1.0](assets/models/LICENSES/CC0-1.0.txt).
+The studio environment (white cyclorama plus key / fill / rim softboxes) is generated procedurally in `crates/driftlab-render/src/env.rs` – own work, no third-party HDRI is shipped. (v0.2.0 used the Poly Haven CC0 HDRI `studio_small_03`; its dark surroundings were the cause of the chrome-grey look, see `docs/AUDIT.md`.)
+
+## Logo
+
+The DriftLab logo and app icon are original work (concepts in `assets/branding/concepts/`, generator in `xtask/src/logo.rs`).
 
 ## Fonts and icons
 

@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-19
+
+### Changed
+- Product-photo rendering: procedural white studio lighting (key / fill / rim softboxes) instead of a dark HDRI, telephoto camera, contact shadow with ground occlusion, brighter exposure. White plastic now reads as white instead of grey chrome.
+- DualSense models: one plain warm-white shell material, glossy black centre, black touchpad, no more camouflage patches from overlapping layers.
+- New app logo and icon (stick cap with drifted dot and the path back to the centre): sidebar, window/taskbar icon, Windows executable and installer graphics, README banner, social preview. Three concepts are kept in `assets/branding/concepts/`.
+
+### Fixed
+- The Windows executable now embeds its icon and version info (shortcuts showed a generic icon).
+- README screenshots can no longer show a real connected controller.
+- Removed the third-party HDRI (and its credit); lighting is generated in code.
+
 ## [0.2.0] - 2026-11-19
 
 ### Changed

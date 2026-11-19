@@ -166,7 +166,9 @@ fn shade(wpos: vec3<f32>, n_geo: vec3<f32>, uv_in: vec2<f32>, with_shadow: bool)
     let diff_ibl = kd * sh_irradiance(n);
     // specular occlusion from the baked AO term plus a cheap orientation-based sky visibility
     let sky_vis = mix(0.55, 1.0, clamp(n.y * 0.5 + 0.5, 0.0, 1.0));
-    let ao = mix(1.0, occ, 1.0) * sky_vis;
+    // cheap contact occlusion towards the ground plane
+    let gh = clamp((wpos.y - g.misc.x) / 0.8, 0.0, 1.0);
+    let ao = mix(1.0, occ, 1.0) * sky_vis * mix(0.55, 1.0, gh * gh);
     var col = (diff_ibl + spec_ibl) * ao;
 
     // --- shadow-casting key light (brightest direction of the HDRI)
@@ -226,7 +228,7 @@ fn fs_ground(in: GroundOut) -> @location(0) vec4<f32> {
     let d = length(in.wpos.xz * vec2<f32>(1.0, 1.25)) / 2.3;
     let f0 = clamp(1.0 - d * d, 0.0, 1.0);
     let falloff = f0 * f0;
-    let blob = exp(-pow(length(in.wpos.xz * vec2<f32>(0.75, 1.1)), 2.0) * 0.22) * 0.30;
+    let blob = exp(-pow(length(in.wpos.xz * vec2<f32>(0.95, 1.5)), 2.0) * 0.42) * 0.42;
     let a = ((1.0 - sh) * 0.5 + blob) * g.misc.z * falloff;
     return vec4<f32>(0.0, 0.0, 0.0, clamp(a, 0.0, 0.8));
 }

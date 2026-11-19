@@ -40,3 +40,38 @@ memory/CPU sampling; unit and integration tests (`cargo test --workspace`).
 | Memory, 8.5 min before fix | 308 → 326 MB (growing) |
 | Memory, 4 min after fix | 314 MB (flat) |
 | Frame rate | not measured with an on-screen counter; rendering is vsync-limited (60 Hz) and CPU load stays low |
+
+
+# v0.2.1 – why did the DualSense look like grey chrome?
+
+**Cause: the lighting environment, not the material data.** The v0.2.0 studio HDRI (`studio_small_03`) has dark surroundings; a
+satin white plastic with a roughness of 0.4–0.5 reflects those at glancing angles and in its highlights, which reads as grey chrome.
+A product photo uses a white cyclorama with large softboxes.
+
+What was checked (and found correct):
+
+| Check | Result |
+|---|---|
+| Textures loaded (baseColor / metallicRoughness / normal / emissive) | all present for every material of `dualsense.glb` (dump of the glTF JSON) |
+| Colour space | base colour and emissive are uploaded as `Rgba8UnormSrgb`, metallicRoughness / normal / occlusion as linear `Rgba8Unorm` (`gltf_load.rs`, `lib.rs`) |
+| Channels | roughness = G, metallic = B, occlusion = R (shader); the shell texture reads metallic 0, roughness ≈ 0.5 (channel means B = 0, G = 127) |
+| Factors | `metallicFactor` / `roughnessFactor` are multiplied with the texture values |
+| Extensions | the model uses `KHR_materials_specular` on one material (ignored, default specular is equivalent); no clearcoat |
+| Normal maps | derivative-based tangent frame, OpenGL convention, correct UV set |
+
+Real defects found on the way (fixed):
+
+1. dark environment (see above) → procedural bright studio with key / fill / rim softboxes;
+2. the white shell consists of overlapping layers (`Back_Baseq`, `Side_Panels`, the static `Trigger_Buttons` part) whose grey
+   textures showed through as camouflage patches → one plain warm-white dielectric (albedo 0.80, roughness 0.5, metallic 0), faces
+   oriented consistently, `Side_Panels` lifted by 0.25 mm, black centre section shrunk by 0.75 %;
+3. black centre section: glossy (roughness ≈ 0.22 via a patched `roughnessFactor`), touchpad black glass;
+4. camera: 22° telephoto instead of 30°, aspect-aware distance, 23° default pitch, slow idle sway and float;
+5. contact shadow tightened, cheap ground-contact ambient occlusion, exposure raised so white reads as white;
+6. the Windows executable had no icon resource (generic icon on shortcuts) → `build.rs` + `driftlab.rc`;
+7. screenshot mode could pick up a real, connected controller (a real DualSense showed up in a test run) → it now only accepts the simulated one.
+
+Not done / limits: the Sketchfab viewer and real manufacturer product photos were not placed next to our renders (no licence for
+the photos; the viewer needs a browser session); the alternative model "Playstation 5 Dualsense" by AHarmlessPotato was **not**
+evaluated because downloads need a logged-in Sketchfab session – with the fixed renderer the current model is acceptable, so it was not
+needed. Bumpers of the DualSense are still part of the shell mesh.

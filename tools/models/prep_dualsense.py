@@ -138,6 +138,41 @@ for _g in ("trigger_l", "trigger_r"):
     if _g in parts:
         P.solid_material(parts[_g], "cap_ps5", (0.80, 0.81, 0.84), 0.38)
 
+# White shell: Back_Baseq and Side_Panels overlap (z-fighting) and the sources claim a pearl/chrome look. One plain, warm-white
+# dielectric (albedo 0.80, roughness 0.5, metallic 0) like the real satin plastic.
+for _o in P.meshes():
+    if _o.name in ("body_back", "body_side") or any(_m and _m.name == "Trigger_Buttons" for _m in _o.data.materials):
+        # (the static Trigger_Buttons part is the shoulder shell: its grey texture showed through as camouflage patches)
+        P.solid_material(_o, "shell_ps5", (0.81, 0.80, 0.78), 0.5)
+
+# Inconsistent face winding on the shell produces patchy dark shading: orient all shell faces consistently outwards.
+import bmesh as _bmesh
+
+for _o in P.meshes():
+    if _o.name in ("body_back", "body_side"):
+        _b = _bmesh.new()
+        _b.from_mesh(_o.data)
+        _bmesh.ops.recalc_face_normals(_b, faces=_b.faces)
+        _b.to_mesh(_o.data)
+        _b.free()
+        for _p in _o.data.polygons:
+            _p.use_smooth = True
+# The black centre section overlaps the shell along its rim (z-fighting dark smudges): shrink it a hair.
+for _o in P.meshes():
+    if _o.name == "body_front":
+        _lo, _hi = P.world_bbox(_o)
+        _c = (_lo + _hi) / 2
+        _inv = _o.matrix_world.inverted()
+        for _v in _o.data.vertices:
+            _w = _o.matrix_world @ _v.co
+            _v.co = _inv @ (_c + (_w - _c) * 0.9925)
+
+# Side_Panels coincides with Back_Baseq on parts of the shell (patchy shading): lift it 0.25 mm along its normals so it wins everywhere.
+for _o in P.meshes():
+    if _o.name == "body_side":
+        _o.data.calc_normals() if hasattr(_o.data, "calc_normals") else None
+        for _v in _o.data.vertices:
+            _v.co += _v.normal * 0.00025
 # Touchpad as black glass (the source renders it as white plastic).
 if P.arg("--whitepad") is None:
     for o in P.meshes():
@@ -160,6 +195,8 @@ if P.arg('--noshrink') is None:
 if P.arg("--preview"):
     P.preview(P.arg("--preview"), P.arg("--angle", "persp"))
 P.export_glb(P.arg("--out"))
+# black centre section: glossy (texture roughness ~0.45 x factor 0.5 = ~0.22)
+P.patch_glb_factors(P.arg("--out"), {"Front_Base": {"roughnessFactor": 0.5}})
 
 
 
