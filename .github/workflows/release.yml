@@ -59,7 +59,7 @@ jobs:
         run: |
           $st = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1
           & $st.FullName sign /f cert.pfx /p $env:WIN_CERT_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 (Get-ChildItem dist/*-setup.exe).FullName
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows
           path: |
@@ -103,7 +103,7 @@ jobs:
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
           ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run $AD "dist/DriftLab-${{ steps.v.outputs.version }}-linux-x86_64.AppImage"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux
           path: |
@@ -162,7 +162,7 @@ jobs:
         run: |
           xcrun notarytool submit dist/*.dmg --apple-id "$MAC_NOTARY_APPLE_ID" --password "$MAC_NOTARY_PASSWORD" --team-id "$MAC_NOTARY_TEAM_ID" --wait
           xcrun stapler staple dist/*.dmg
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos
           path: dist/*.dmg
