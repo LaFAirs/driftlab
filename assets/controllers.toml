@@ -1,0 +1,58 @@
+# DriftLab controller database. Extend freely; see docs/ADDING_A_CONTROLLER.md.
+# IDs cross-checked against Linux hid-ids.h / xpad.c and SDL usb_ids.h.
+
+[[controller]]
+name = "DualSense Wireless Controller"
+family = "DualSense"
+vid = 0x054C
+pids = [0x0CE6]
+theme = "ps5"
+model = "dualsense.glb"
+
+[[controller]]
+name = "DualSense Edge Wireless Controller"
+family = "DualSenseEdge"
+vid = 0x054C
+pids = [0x0DF2]
+theme = "ps5_edge"
+model = "dualsense_edge.glb"
+
+[[controller]]
+name = "DualShock 4 (v1)"
+family = "DualShock4"
+vid = 0x054C
+pids = [0x05C4]
+theme = "ps4"
+model = "dualshock4.glb"
+
+[[controller]]
+name = "DualShock 4 (v2)"
+family = "DualShock4"
+vid = 0x054C
+pids = [0x09CC, 0x0BA0]
+theme = "ps4"
+model = "dualshock4.glb"
+
+[[controller]]
+name = "Xbox One Controller"
+family = "Xbox"
+vid = 0x045E
+pids = [0x02D1, 0x02DD, 0x02EA, 0x02FD, 0x02E0]
+theme = "xbox"
+model = "xbox.glb"
+
+[[controller]]
+name = "Xbox Series X|S Controller"
+family = "Xbox"
+vid = 0x045E
+pids = [0x0B12, 0x0B13]
+theme = "xbox"
+model = "xbox.glb"
+
+[[controller]]
+name = "Xbox Elite Series 2 Controller"
+family = "XboxElite"
+vid = 0x045E
+pids = [0x0B00, 0x0B05, 0x0B22, 0x02E3]
+theme = "xbox_elite"
+model = "xbox_elite.glb"

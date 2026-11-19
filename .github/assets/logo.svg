@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="DriftLab logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B2335"/>
+      <stop offset="1" stop-color="#0B0F17"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+  <circle cx="128" cy="128" r="84" fill="none" stroke="#ECF0F7" stroke-width="14"/>
+  <g stroke="#ECF0F7" stroke-width="10" stroke-linecap="round">
+    <path d="M128 18v34M128 204v34M18 128h34M204 128h34"/>
+  </g>
+  <circle cx="146" cy="116" r="26" fill="#2D6BFF"/>
+</svg>

@@ -1,0 +1,29 @@
+[workspace]
+resolver = "2"
+members = ["crates/driftlab-core", "crates/driftlab-render", "crates/driftlab-app", "crates/driftlab-cli", "xtask"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/LaFAirs/driftlab"
+rust-version = "1.85"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+thiserror = "1"
+directories = "5"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+crossbeam-channel = "0.5"
+parking_lot = "0.12"
+hidapi = "2"
+proptest = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

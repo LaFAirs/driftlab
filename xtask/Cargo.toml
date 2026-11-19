@@ -1,0 +1,11 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+
+[dependencies]
+ab_glyph = "0.2"
+image = { version = "0.25", default-features = false, features = ["png", "ico"] }
+

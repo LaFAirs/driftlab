@@ -1,0 +1,11 @@
+[package]
+name = "driftlab-render"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bytemuck = "1.25.2"
+glam = "0.30"
+wgpu = "30.0.2"
+

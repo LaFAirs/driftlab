@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+# Reload udev so the controller rules apply immediately (no reboot / replug needed after the next plug-in).
+if command -v udevadm >/dev/null 2>&1; then
+    udevadm control --reload-rules || true
+    udevadm trigger --subsystem-match=hidraw --subsystem-match=usb || true
+fi
+exit 0

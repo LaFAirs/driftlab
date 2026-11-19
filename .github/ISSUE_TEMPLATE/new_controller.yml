@@ -1,0 +1,25 @@
+name: Add a controller
+description: Request or contribute support for a new controller
+labels: [controller-support]
+body:
+  - type: input
+    id: name
+    attributes: { label: Controller name }
+    validations: { required: true }
+  - type: input
+    id: vid
+    attributes: { label: Vendor ID (VID), placeholder: "054C" }
+    validations: { required: true }
+  - type: input
+    id: pid
+    attributes: { label: Product ID(s) (PID), placeholder: "0CE6, 0DF2" }
+    validations: { required: true }
+  - type: dropdown
+    id: conn
+    attributes: { label: Connection tested, options: [USB, Bluetooth, Both, 2.4 GHz dongle] }
+  - type: textarea
+    id: dump
+    attributes: { label: HID report dump, description: "Settings → Expert mode → HID report inspector (copy the hex)", render: text }
+  - type: textarea
+    id: notes
+    attributes: { label: Notes, description: Known protocol documentation, similar models, etc. }

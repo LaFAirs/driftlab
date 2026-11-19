@@ -1,0 +1,193 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      WIN_CERT_PFX_BASE64: ${{ secrets.WIN_CERT_PFX_BASE64 }}
+      WIN_CERT_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Version
+        id: v
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Build
+        run: cargo build --release -p driftlab-app -p driftlab-cli
+      - name: Stage
+        shell: bash
+        run: |
+          mkdir -p dist/windows
+          cp target/release/driftlab.exe target/release/driftlab-cli.exe dist/windows/
+      - name: Sign binaries (optional)
+        if: env.WIN_CERT_PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:WIN_CERT_PFX_BASE64))
+          $st = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1
+          & $st.FullName sign /f cert.pfx /p $env:WIN_CERT_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 dist/windows/driftlab.exe dist/windows/driftlab-cli.exe
+      - name: Portable zip
+        shell: pwsh
+        run: |
+          Copy-Item LICENSE, README.md dist/windows/
+          Compress-Archive -Path dist/windows/* -DestinationPath "dist/DriftLab-${{ steps.v.outputs.version }}-windows-x64-portable.zip"
+          Remove-Item dist/windows/LICENSE, dist/windows/README.md
+      - name: Installer (Inno Setup)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) { choco install innosetup -y --no-progress }
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" }
+          & $iscc "/DAppVersion=${{ steps.v.outputs.version }}" "/DSourceDir=$PWD\dist\windows" packaging\windows\driftlab.iss
+      - name: Sign installer (optional)
+        if: env.WIN_CERT_PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          $st = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1
+          & $st.FullName sign /f cert.pfx /p $env:WIN_CERT_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 (Get-ChildItem dist/*-setup.exe).FullName
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/*-setup.exe
+            dist/*-portable.zip
+
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev libusb-1.0-0-dev libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxi-dev libxrandr-dev libgtk-3-dev libxdo-dev wget file
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb
+      - name: Version
+        id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Build
+        run: cargo build --release -p driftlab-app -p driftlab-cli
+      - name: .deb
+        run: |
+          cargo deb -p driftlab-app --no-build --no-strip -o "dist/DriftLab-${{ steps.v.outputs.version }}-linux-amd64.deb" || \
+          cargo deb -p driftlab-app --no-build -o "dist/DriftLab-${{ steps.v.outputs.version }}-linux-amd64.deb"
+      - name: AppImage
+        run: |
+          mkdir -p dist
+          AD=DriftLab.AppDir
+          mkdir -p $AD/usr/bin $AD/usr/share/icons/hicolor/256x256/apps
+          cp target/release/driftlab target/release/driftlab-cli $AD/usr/bin/
+          cp packaging/linux/driftlab.desktop $AD/driftlab.desktop
+          cp assets/icons/icon-256.png $AD/driftlab.png
+          cp assets/icons/icon-256.png $AD/usr/share/icons/hicolor/256x256/apps/driftlab.png
+          cp packaging/linux/70-driftlab.rules $AD/70-driftlab.rules
+          printf '#!/bin/sh\nHERE="$(dirname "$(readlink -f "$0")")"\nexec "$HERE/usr/bin/driftlab" "$@"\n' > $AD/AppRun
+          chmod +x $AD/AppRun
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run $AD "dist/DriftLab-${{ steps.v.outputs.version }}-linux-x86_64.AppImage"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/*.deb
+            dist/*.AppImage
+
+  macos:
+    runs-on: macos-latest
+    env:
+      MAC_CERT_P12_BASE64: ${{ secrets.MAC_CERT_P12_BASE64 }}
+      MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+      MAC_SIGN_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
+      MAC_NOTARY_APPLE_ID: ${{ secrets.MAC_NOTARY_APPLE_ID }}
+      MAC_NOTARY_PASSWORD: ${{ secrets.MAC_NOTARY_PASSWORD }}
+      MAC_NOTARY_TEAM_ID: ${{ secrets.MAC_NOTARY_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+      - name: Version
+        id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Build universal binary
+        run: |
+          cargo build --release -p driftlab-app --target aarch64-apple-darwin
+          cargo build --release -p driftlab-app --target x86_64-apple-darwin
+          mkdir -p dist/mac
+          lipo -create -output dist/mac/driftlab target/aarch64-apple-darwin/release/driftlab target/x86_64-apple-darwin/release/driftlab
+      - name: App bundle
+        run: |
+          APP=dist/mac/DriftLab.app
+          mkdir -p $APP/Contents/MacOS $APP/Contents/Resources
+          cp dist/mac/driftlab $APP/Contents/MacOS/driftlab
+          cp assets/icons/driftlab.icns $APP/Contents/Resources/driftlab.icns
+          sed "s/@VERSION@/${{ steps.v.outputs.version }}/g" packaging/macos/Info.plist > $APP/Contents/Info.plist
+      - name: Sign (optional)
+        if: env.MAC_CERT_P12_BASE64 != ''
+        run: |
+          echo "$MAC_CERT_P12_BASE64" | base64 --decode > cert.p12
+          security create-keychain -p ci build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p ci build.keychain
+          security import cert.p12 -k build.keychain -P "$MAC_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci build.keychain
+          codesign --force --deep --options runtime --sign "$MAC_SIGN_IDENTITY" dist/mac/DriftLab.app
+      - name: DMG
+        run: |
+          mkdir -p dmg-root
+          cp -R dist/mac/DriftLab.app dmg-root/
+          ln -s /Applications dmg-root/Applications
+          hdiutil create -volname "DriftLab" -srcfolder dmg-root -ov -format UDZO "dist/DriftLab-${{ steps.v.outputs.version }}-macos-universal.dmg"
+      - name: Notarize (optional)
+        if: env.MAC_NOTARY_APPLE_ID != ''
+        run: |
+          xcrun notarytool submit dist/*.dmg --apple-id "$MAC_NOTARY_APPLE_ID" --password "$MAC_NOTARY_PASSWORD" --team-id "$MAC_NOTARY_TEAM_ID" --wait
+          xcrun stapler staple dist/*.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*.dmg
+
+  publish:
+    needs: [windows, linux, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Checksums
+        run: |
+          cd artifacts
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: artifacts/*
+      - name: Release notes
+        run: bash scripts/release-notes.sh "${GITHUB_REF_NAME}" "${GITHUB_REPOSITORY}" > notes.md
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" artifacts/* --title "DriftLab ${GITHUB_REF_NAME}" --notes-file notes.md --verify-tag

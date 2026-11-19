@@ -1,0 +1,49 @@
+[package]
+name = "driftlab-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "DriftLab ??? stick drift diagnosis and calibration"
+
+[[bin]]
+name = "driftlab"
+path = "src/main.rs"
+
+[dependencies]
+driftlab-core = { path = "../driftlab-core" }
+driftlab-render = { path = "../driftlab-render" }
+eframe = { version = "0.37.0", default-features = false, features = ["wgpu", "default_fonts", "accesskit", "wayland", "x11", "persistence"] }
+egui-pop-phosphor = "0.15.0"
+image = { version = "0.25", default-features = false, features = ["png"] }
+ureq = { version = "3", features = ["json"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+crossbeam-channel.workspace = true
+parking_lot.workspace = true
+serde_json.workspace = true
+rfd = "0.18.0"
+sys-locale = "0.3.2"
+directories.workspace = true
+egui = "0.37"
+
+[package.metadata.deb]
+name = "driftlab"
+maintainer = "DriftLab contributors <noreply@users.noreply.github.com>"
+copyright = "DriftLab contributors"
+license-file = ["../../LICENSE", "0"]
+extended-description = "Diagnose and fix gamepad stick drift for DualShock 4, DualSense and Xbox controllers."
+depends = "$auto, libudev1, libvulkan1 | libgl1"
+section = "utils"
+priority = "optional"
+maintainer-scripts = "../../packaging/linux"
+assets = [
+  ["../../target/release/driftlab", "usr/bin/", "755"],
+  ["../../target/release/driftlab-cli", "usr/bin/", "755"],
+  ["../../packaging/linux/70-driftlab.rules", "lib/udev/rules.d/70-driftlab.rules", "644"],
+  ["../../packaging/linux/driftlab.desktop", "usr/share/applications/driftlab.desktop", "644"],
+  ["../../assets/icons/icon-256.png", "usr/share/icons/hicolor/256x256/apps/driftlab.png", "644"],
+  ["../../assets/icons/icon-64.png", "usr/share/icons/hicolor/64x64/apps/driftlab.png", "644"],
+]
+

@@ -1,0 +1,25 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes: { label: DriftLab version, placeholder: "0.1.0" }
+    validations: { required: true }
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Windows 11, Windows 10, Linux, macOS (Apple Silicon), macOS (Intel)]
+    validations: { required: true }
+  - type: input
+    id: controller
+    attributes: { label: Controller, description: "Model, VID:PID, connection (USB/Bluetooth), firmware", placeholder: "DualSense 054C:0CE6, USB, fw 1.0.x" }
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes: { label: What happened?, description: Steps to reproduce and what you expected }
+    validations: { required: true }
+  - type: textarea
+    id: log
+    attributes: { label: Log, description: "Settings → Export logs (paste the relevant part)", render: text }

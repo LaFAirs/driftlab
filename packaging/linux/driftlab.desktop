@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=DriftLab
+GenericName=Controller calibration
+Comment=Diagnose and fix gamepad stick drift
+Exec=driftlab
+Icon=driftlab
+Terminal=false
+Categories=Utility;Game;
+Keywords=gamepad;controller;drift;calibration;dualsense;dualshock;xbox;

@@ -1,0 +1,22 @@
+[package]
+name = "driftlab-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+thiserror.workspace = true
+directories.workspace = true
+tracing.workspace = true
+crossbeam-channel.workspace = true
+parking_lot.workspace = true
+hidapi.workspace = true
+gilrs = "0.11.1"
+
+[dev-dependencies]
+proptest.workspace = true
